@@ -18,7 +18,7 @@ export default function App() {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  // Vytvoření admin účtu
+  // vytvoření admin účtu
   useEffect(() => {
     const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
     const users = usersRaw ? JSON.parse(usersRaw) : {};
@@ -28,7 +28,7 @@ export default function App() {
     }
   }, []);
 
-  // Načtení záznamů po přihlášení
+  // načtení záznamů po přihlášení
   useEffect(() => {
     if (!loggedInUser) return;
     const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
@@ -52,45 +52,38 @@ export default function App() {
     }
   }, [loggedInUser]);
 
-  // Ukládání dat
+  // ukládání dat
   useEffect(() => {
     if (!loggedInUser || loggedInUser === "admin") return;
     localStorage.setItem(`krokyData-${loggedInUser}`, JSON.stringify(entries));
   }, [entries, loggedInUser]);
 
-  // Registrace
+  // registrace
   function handleRegister(e) {
     e.preventDefault();
-    if (!usernameInput || !passwordInput) {
-      alert("Vyplň jméno i heslo");
-      return;
-    }
+    if (!usernameInput || !passwordInput) return alert("Vyplň jméno i heslo");
 
     const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
     const users = usersRaw ? JSON.parse(usersRaw) : {};
 
-    if (users[usernameInput]) {
-      alert("Uživatel už existuje");
-      return;
-    }
+    if (users[usernameInput]) return alert("Uživatel už existuje");
 
     users[usernameInput] = passwordInput;
     localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
-    alert("Registrace úspěšná! Nyní se přihlaš.");
+
+    alert("Registrace úspěšná! Přihlaš se.");
     setIsRegistering(false);
     setUsernameInput("");
     setPasswordInput("");
   }
 
-  // Přihlášení
+  // přihlášení
   function handleLogin(e) {
     e.preventDefault();
     const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
     const users = usersRaw ? JSON.parse(usersRaw) : {};
-    if (!users[usernameInput] || users[usernameInput] !== passwordInput) {
-      alert("Špatné jméno nebo heslo!");
-      return;
-    }
+    if (!users[usernameInput] || users[usernameInput] !== passwordInput)
+      return alert("Špatné jméno nebo heslo!");
     setLoggedInUser(usernameInput);
     setUsernameInput("");
     setPasswordInput("");
@@ -105,11 +98,11 @@ export default function App() {
     setNewPassword("");
   }
 
-  // Přidání kroků
+  // přidání kroků
   function addOrUpdateEntry(e) {
     e.preventDefault();
     const steps = Number(stepsInput) || 0;
-    if (steps <= 0) return alert("Zadej počet kroků větší než 0");
+    if (steps <= 0) return alert("Zadej kladný počet kroků");
 
     const date = today;
     if (editingId) {
@@ -140,9 +133,8 @@ export default function App() {
   }
 
   function removeEntry(id) {
-    if (confirm("Smazat záznam?")) {
+    if (confirm("Smazat záznam?"))
       setEntries((prev) => prev.filter((p) => p.id !== id));
-    }
   }
 
   function clearAll() {
@@ -152,7 +144,7 @@ export default function App() {
     }
   }
 
-  // Nastavení účtu
+  // nastavení účtu
   function openSettings() {
     setShowSettings(!showSettings);
     setMathVerified(false);
@@ -164,11 +156,8 @@ export default function App() {
 
   function verifyMath(e) {
     e.preventDefault();
-    if (Number(mathAnswer) === mathProblem.a * mathProblem.b) {
-      setMathVerified(true);
-    } else {
-      alert("Špatně! Zkus znovu.");
-    }
+    if (Number(mathAnswer) === mathProblem.a * mathProblem.b) setMathVerified(true);
+    else alert("Špatně! Zkus znovu.");
   }
 
   function changePassword(e) {
@@ -184,7 +173,7 @@ export default function App() {
     setNewPassword("");
   }
 
-  // Admin – mazání a změna hesla uživatelům
+  // admin akce
   function deleteUser(user) {
     if (!confirm(`Smazat uživatele "${user}" a jeho data?`)) return;
     const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
@@ -202,11 +191,11 @@ export default function App() {
     const users = usersRaw ? JSON.parse(usersRaw) : {};
     users[user] = newPass;
     localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
-    alert(`Heslo pro uživatele "${user}" bylo změněno!`);
+    alert(`Heslo pro uživatele "${user}" změněno!`);
     setEditPasswords((prev) => ({ ...prev, [user]: "" }));
   }
 
-  // Přihlašovací formulář
+  // přihlašovací obrazovka
   if (!loggedInUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-blue-50">
@@ -252,7 +241,7 @@ export default function App() {
     );
   }
 
-  // Hlavní stránka
+  // hlavní aplikace
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-6">
       <div className="max-w-4xl mx-auto">
@@ -268,7 +257,7 @@ export default function App() {
           </button>
         </header>
 
-        {/* Uživatel */}
+        {/* uživatel */}
         {loggedInUser !== "admin" && (
           <>
             <form
@@ -343,7 +332,7 @@ export default function App() {
               )}
             </div>
 
-            {/* Nastavení */}
+            {/* nastavení účtu */}
             <div>
               <button
                 onClick={openSettings}
@@ -389,10 +378,10 @@ export default function App() {
           </>
         )}
 
-        {/* Admin panel */}
+        {/* admin panel */}
         {loggedInUser === "admin" && (
           <div className="bg-white p-4 rounded-2xl shadow">
-            <h2 className="text-blue-600 font-semibold mb-3">Uživatelé</h2>
+            <h2 className="text-blue-600 font-semibold mb-3">Admin – uživatelé</h2>
             <table className="w-full border mb-6 text-sm">
               <thead>
                 <tr className="bg-blue-100">
@@ -473,4 +462,17 @@ export default function App() {
                     .sort((a, b) => b.date.localeCompare(a.date))
                     .map((e) => (
                       <tr key={e.id}>
-                        <td class
+                        <td className="border p-2">{e.user}</td>
+                        <td className="border p-2">{e.date}</td>
+                        <td className="border p-2">{e.steps}</td>
+                      </tr>
+                    ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
