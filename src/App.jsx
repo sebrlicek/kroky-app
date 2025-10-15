@@ -10,15 +10,15 @@ export default function App() {
   const [stepsInput, setStepsInput] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [mathProblem, setMathProblem] = useState({ a: 0, b: 0 });
   const [mathAnswer, setMathAnswer] = useState("");
   const [mathVerified, setMathVerified] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [editPasswords, setEditPasswords] = useState({});
-  const [mathProblem, setMathProblem] = useState({ a: 0, b: 0 });
 
   const today = new Date().toISOString().slice(0, 10);
 
-  // vytvoření admin účtu
+  // Vytvoření admin účtu
   useEffect(() => {
     const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
     const users = usersRaw ? JSON.parse(usersRaw) : {};
@@ -28,7 +28,7 @@ export default function App() {
     }
   }, []);
 
-  // načtení záznamů po přihlášení
+  // Načtení záznamů po přihlášení
   useEffect(() => {
     if (!loggedInUser) return;
     const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
@@ -48,41 +48,49 @@ export default function App() {
     } else {
       const raw = localStorage.getItem(`krokyData-${loggedInUser}`);
       if (raw) setEntries(JSON.parse(raw));
+      else setEntries([]);
     }
   }, [loggedInUser]);
 
-  // ukládání dat
+  // Ukládání dat
   useEffect(() => {
     if (!loggedInUser || loggedInUser === "admin") return;
     localStorage.setItem(`krokyData-${loggedInUser}`, JSON.stringify(entries));
   }, [entries, loggedInUser]);
 
-  // registrace
+  // Registrace
   function handleRegister(e) {
     e.preventDefault();
-    if (!usernameInput || !passwordInput) return alert("Vyplň jméno i heslo");
+    if (!usernameInput || !passwordInput) {
+      alert("Vyplň jméno i heslo");
+      return;
+    }
 
     const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
     const users = usersRaw ? JSON.parse(usersRaw) : {};
 
-    if (users[usernameInput]) return alert("Uživatel už existuje");
+    if (users[usernameInput]) {
+      alert("Uživatel už existuje");
+      return;
+    }
 
     users[usernameInput] = passwordInput;
     localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
-
-    alert("Registrace úspěšná! Přihlaš se.");
+    alert("Registrace úspěšná! Nyní se přihlaš.");
     setIsRegistering(false);
     setUsernameInput("");
     setPasswordInput("");
   }
 
-  // přihlášení
+  // Přihlášení
   function handleLogin(e) {
     e.preventDefault();
     const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
     const users = usersRaw ? JSON.parse(usersRaw) : {};
-    if (!users[usernameInput] || users[usernameInput] !== passwordInput)
-      return alert("Špatné jméno nebo heslo!");
+    if (!users[usernameInput] || users[usernameInput] !== passwordInput) {
+      alert("Špatné jméno nebo heslo!");
+      return;
+    }
     setLoggedInUser(usernameInput);
     setUsernameInput("");
     setPasswordInput("");
@@ -97,12 +105,13 @@ export default function App() {
     setNewPassword("");
   }
 
-  // přidání kroků
+  // Přidání kroků
   function addOrUpdateEntry(e) {
     e.preventDefault();
     const steps = Number(stepsInput) || 0;
-    const date = today;
+    if (steps <= 0) return alert("Zadej počet kroků větší než 0");
 
+    const date = today;
     if (editingId) {
       setEntries((prev) =>
         prev.map((it) => (it.id === editingId ? { ...it, steps } : it))
@@ -111,8 +120,15 @@ export default function App() {
     } else {
       setEntries((prev) => {
         const filtered = prev.filter((p) => p.date !== date);
-        const newEntry = { id: Date.now().toString(), date, steps, user: loggedInUser };
-        return [...filtered, newEntry].sort((a, b) => a.date.localeCompare(b.date));
+        const newEntry = {
+          id: Date.now().toString(),
+          date,
+          steps,
+          user: loggedInUser,
+        };
+        return [...filtered, newEntry].sort((a, b) =>
+          a.date.localeCompare(b.date)
+        );
       });
     }
     setStepsInput("");
@@ -124,17 +140,19 @@ export default function App() {
   }
 
   function removeEntry(id) {
-    if (!confirm("Smazat záznam?")) return;
-    setEntries((prev) => prev.filter((p) => p.id !== id));
+    if (confirm("Smazat záznam?")) {
+      setEntries((prev) => prev.filter((p) => p.id !== id));
+    }
   }
 
   function clearAll() {
-    if (!confirm("Smazat všechny záznamy?")) return;
-    setEntries([]);
-    localStorage.removeItem(`krokyData-${loggedInUser}`);
+    if (confirm("Smazat všechny záznamy?")) {
+      setEntries([]);
+      localStorage.removeItem(`krokyData-${loggedInUser}`);
+    }
   }
 
-  // změna hesla (uživatel)
+  // Nastavení účtu
   function openSettings() {
     setShowSettings(!showSettings);
     setMathVerified(false);
@@ -146,8 +164,11 @@ export default function App() {
 
   function verifyMath(e) {
     e.preventDefault();
-    if (Number(mathAnswer) === mathProblem.a * mathProblem.b) setMathVerified(true);
-    else alert("Špatně! Zkus znovu.");
+    if (Number(mathAnswer) === mathProblem.a * mathProblem.b) {
+      setMathVerified(true);
+    } else {
+      alert("Špatně! Zkus znovu.");
+    }
   }
 
   function changePassword(e) {
@@ -160,11 +181,10 @@ export default function App() {
     alert("Heslo změněno!");
     setShowSettings(false);
     setMathVerified(false);
-    setMathAnswer("");
     setNewPassword("");
   }
 
-  // admin - mazání a změna hesla uživatelům
+  // Admin – mazání a změna hesla uživatelům
   function deleteUser(user) {
     if (!confirm(`Smazat uživatele "${user}" a jeho data?`)) return;
     const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
@@ -186,7 +206,7 @@ export default function App() {
     setEditPasswords((prev) => ({ ...prev, [user]: "" }));
   }
 
-  // přihlašovací stránka
+  // Přihlašovací formulář
   if (!loggedInUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-blue-50">
@@ -232,7 +252,7 @@ export default function App() {
     );
   }
 
-  // hlavní stránka
+  // Hlavní stránka
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-6">
       <div className="max-w-4xl mx-auto">
@@ -248,7 +268,7 @@ export default function App() {
           </button>
         </header>
 
-        {/* --- Uživatelská sekce --- */}
+        {/* Uživatel */}
         {loggedInUser !== "admin" && (
           <>
             <form
@@ -265,7 +285,7 @@ export default function App() {
                   className="flex-1 p-2 border rounded-md"
                 />
                 <button className="bg-blue-600 text-white px-4 py-2 rounded-xl">
-                  Přidat
+                  {editingId ? "Uložit" : "Přidat"}
                 </button>
               </div>
             </form>
@@ -283,7 +303,7 @@ export default function App() {
                 <tbody>
                   {entries.length === 0 ? (
                     <tr>
-                      <td colSpan={3} className="p-3 text-center text-gray-500">
+                      <td colSpan="3" className="p-3 text-center text-gray-500">
                         Zatím žádné záznamy
                       </td>
                     </tr>
@@ -297,7 +317,7 @@ export default function App() {
                           <td className="border p-2">
                             <button
                               onClick={() => startEdit(e)}
-                              className="mr-2 text-blue-600"
+                              className="text-blue-600 mr-2"
                             >
                               Upravit
                             </button>
@@ -323,8 +343,8 @@ export default function App() {
               )}
             </div>
 
-            {/* --- Nastavení účtu --- */}
-            <div className="mb-6">
+            {/* Nastavení */}
+            <div>
               <button
                 onClick={openSettings}
                 className="bg-yellow-500 text-white px-4 py-2 rounded-xl"
@@ -369,16 +389,16 @@ export default function App() {
           </>
         )}
 
-        {/* --- Admin panel --- */}
+        {/* Admin panel */}
         {loggedInUser === "admin" && (
           <div className="bg-white p-4 rounded-2xl shadow">
-            <h2 className="text-blue-600 font-semibold mb-3">Admin – uživatelé</h2>
+            <h2 className="text-blue-600 font-semibold mb-3">Uživatelé</h2>
             <table className="w-full border mb-6 text-sm">
               <thead>
                 <tr className="bg-blue-100">
                   <th className="border p-2">Uživatel</th>
                   <th className="border p-2">Heslo</th>
-                  <th className="border p-2">Změnit heslo</th>
+                  <th className="border p-2">Změna hesla</th>
                   <th className="border p-2">Akce</th>
                 </tr>
               </thead>
@@ -442,17 +462,15 @@ export default function App() {
                 </tr>
               </thead>
               <tbody>
-                {[...entries]
-                  .sort((a, b) => b.date.localeCompare(a.date))
-                  .map((e) => (
-                    <tr key={e.id}>
-                      <td className="border p-2">{e.user}</td>
-                      <td className="border p-2">{e.date}</td>
-                      <td className="border p-2">{e.steps}</td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div
+                {entries.length === 0 ? (
+                  <tr>
+                    <td colSpan="3" className="p-3 text-center text-gray-500">
+                      Žádné záznamy
+                    </td>
+                  </tr>
+                ) : (
+                  entries
+                    .sort((a, b) => b.date.localeCompare(a.date))
+                    .map((e) => (
+                      <tr key={e.id}>
+                        <td class
