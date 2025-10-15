@@ -233,41 +233,4 @@ export default function App() {
             <table className="w-full text-sm table-auto">
               <thead>
                 <tr className="text-left text-blue-600">
-                  {loggedInUser === "admin" && <th className="p-2">Uživatel</th>}
-                  <th className="p-2">Datum</th>
-                  <th className="p-2">Kroky</th>
-                  <th className="p-2">Akce</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...entries].sort((a,b)=>b.date.localeCompare(a.date)).map(entry=>(
-                  <tr key={entry.id} className="border-t">
-                    {loggedInUser === "admin" && <td className="p-2 align-top">{entry.user}</td>}
-                    <td className="p-2 align-top">{entry.date}</td>
-                    <td className="p-2 align-top">{entry.steps.toLocaleString()}</td>
-                    <td className="p-2 align-top">
-                      {loggedInUser !== "admin" && <>
-                        <button onClick={()=>startEdit(entry)} className="mr-2 text-sm px-3 py-1 rounded-md border border-blue-100">Upravit</button>
-                        <button onClick={()=>removeEntry(entry.id)} className="text-sm px-3 py-1 rounded-md bg-red-50 text-red-600 border border-red-100">Smazat</button>
-                      </>}
-                    </td>
-                  </tr>
-                ))}
-                {entries.length===0 && <tr><td colSpan={loggedInUser==="admin"?4:3} className="p-4 text-center text-gray-500">Zatím žádné záznamy. Zapiš dnešní kroky.</td></tr>}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        {/* --- seznam uživatelů a hesel pro admina --- */}
-        {loggedInUser === "admin" && (
-          <section className="bg-white rounded-2xl shadow p-4 mt-6">
-            <h3 className="text-lg font-medium text-blue-700 mb-3">Všichni uživatelé (uživatelská jména a hesla)</h3>
-            <pre className="text-sm text-gray-700">{localStorage.getItem(STORAGE_USERS_KEY)}</pre>
-          </section>
-        )}
-
-      </div>
-    </div>
-  );
-}
+                  {loggedInUser === "admin" && <th className="p
