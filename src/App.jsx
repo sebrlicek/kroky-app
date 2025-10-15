@@ -18,6 +18,12 @@ export default function App() {
   const [stepsInput, setStepsInput] = useState(0);
   const [editingId, setEditingId] = useState(null);
 
+  // Nastavení účtu
+  const [showSettings, setShowSettings] = useState(false);
+  const [mathAnswer, setMathAnswer] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [mathVerified, setMathVerified] = useState(false);
+
   const today = new Date().toISOString().slice(0, 10);
   const STORAGE_USERS_KEY = "krokyAppUsers";
 
@@ -97,6 +103,10 @@ export default function App() {
   function handleLogout() {
     setLoggedInUser(null);
     setEntries([]);
+    setShowSettings(false);
+    setMathVerified(false);
+    setMathAnswer("");
+    setNewPassword("");
   }
 
   function addOrUpdateEntry(e) {
@@ -145,11 +155,36 @@ export default function App() {
     setEntries((prev) => prev.filter((e) => e.user !== user));
   }
 
+  // --- Nastavení účtu ---
+  function verifyMath(e) {
+    e.preventDefault();
+    if (Number(mathAnswer) === 23 * 10) {
+      setMathVerified(true);
+    } else {
+      alert("Špatně, zkus to znovu!");
+    }
+  }
+
+  function changePassword(e) {
+    e.preventDefault();
+    if (!newPassword) return alert("Zadej nové heslo");
+
+    const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
+    const users = usersRaw ? JSON.parse(usersRaw) : {};
+    users[loggedInUser] = newPassword;
+    localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
+    alert("Heslo bylo změněno!");
+    setNewPassword("");
+    setShowSettings(false);
+    setMathVerified(false);
+    setMathAnswer("");
+  }
+
   const chartData = [...entries]
     .sort((a, b) => a.date.localeCompare(b.date))
     .map((e) => ({ date: e.date, kroky: Number(e.steps), user: e.user }));
 
-  // Login / Registrace
+  // --- Login / Registrace ---
   if (!loggedInUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-blue-50">
@@ -195,7 +230,7 @@ export default function App() {
     );
   }
 
-  // Hlavní aplikace
+  // --- Hlavní aplikace ---
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-6">
       <div className="max-w-3xl mx-auto">
@@ -209,6 +244,7 @@ export default function App() {
           </button>
         </header>
 
+        {/* --- Přidávání kroků --- */}
         {loggedInUser !== "admin" && (
           <section className="bg-white rounded-2xl shadow p-4 mb-6">
             <form onSubmit={addOrUpdateEntry} className="space-y-3">
@@ -226,119 +262,4 @@ export default function App() {
                   min={0}
                 />
               </div>
-              <div className="flex flex-wrap gap-2">
-                <button type="submit" className="px-4 py-2 rounded-xl bg-blue-600 text-white font-medium">
-                  {editingId ? "Uložit změnu" : "Přidat záznam"}
-                </button>
-                <button type="button" onClick={() => setStepsInput(0)} className="px-4 py-2 rounded-xl border border-blue-200 text-blue-700">
-                  Reset
-                </button>
-                {entries.length > 0 && (
-                  <button type="button" onClick={clearAll} className="px-4 py-2 rounded-xl bg-red-500 text-white font-medium">
-                    Vymazat vše
-                  </button>
-                )}
-              </div>
-            </form>
-          </section>
-        )}
-
-        <section className="bg-white rounded-2xl shadow p-4 mb-6">
-          <h2 className="font-semibold text-blue-700 mb-2">Graf kroků</h2>
-          <div style={{ height: 260 }} className="w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="kroky" stroke="#1D4ED8" strokeWidth={3} dot={{ r: 3 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </section>
-
-        <section className="bg-white rounded-2xl shadow p-4 mb-6">
-          <h3 className="text-lg font-medium text-blue-700 mb-3">Záznamy</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm table-auto">
-              <thead>
-                <tr className="text-left text-blue-600">
-                  {loggedInUser === "admin" && <th className="p-2">Uživatel</th>}
-                  <th className="p-2">Datum</th>
-                  <th className="p-2">Kroky</th>
-                  <th className="p-2">Akce</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...entries].sort((a,b)=>b.date.localeCompare(a.date)).map(entry=>(
-                  <tr key={entry.id} className="border-t">
-                    {loggedInUser === "admin" && <td className="p-2 align-top">{entry.user}</td>}
-                    <td className="p-2 align-top">{entry.date}</td>
-                    <td className="p-2 align-top">{entry.steps.toLocaleString()}</td>
-                    <td className="p-2 align-top">
-                      {loggedInUser !== "admin" && <>
-                        <button onClick={()=>startEdit(entry)} className="mr-2 text-sm px-3 py-1 rounded-md border border-blue-100">Upravit</button>
-                        <button onClick={()=>removeEntry(entry.id)} className="text-sm px-3 py-1 rounded-md bg-red-50 text-red-600 border border-red-100">Smazat</button>
-                      </>}
-                    </td>
-                  </tr>
-                ))}
-                {entries.length===0 && <tr><td colSpan={loggedInUser==="admin"?4:3} className="p-4 text-center text-gray-500">Zatím žádné záznamy. Zapiš dnešní kroky.</td></tr>}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        {loggedInUser === "admin" && (
-          <section className="bg-white rounded-2xl shadow p-4 mt-6">
-            <h3 className="text-lg font-medium text-blue-700 mb-3">Všichni uživatelé</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm table-auto">
-                <thead>
-                  <tr className="text-left text-blue-600">
-                    <th className="p-2">Uživatel</th>
-                    <th className="p-2">Heslo</th>
-                    <th className="p-2">Akce</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(() => {
-                    const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
-                    const users = usersRaw ? JSON.parse(usersRaw) : {};
-                    const entries = Object.entries(users);
-                    if (entries.length === 0) {
-                      return (
-                        <tr>
-                          <td colSpan={3} className="p-4 text-center text-gray-500">
-                            Žádní uživatelé
-                          </td>
-                        </tr>
-                      );
-                    }
-                    return entries.map(([user, pass]) => (
-                      <tr key={user} className="border-t">
-                        <td className="p-2">{user}</td>
-                        <td className="p-2">{pass}</td>
-                        <td className="p-2">
-                          {user !== "admin" && (
-                            <button
-                              onClick={() => deleteUser(user)}
-                              className="px-3 py-1 text-sm bg-red-500 text-white rounded-md"
-                            >
-                              Smazat
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ));
-                  })()}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-      </div>
-    </div>
-  );
-}
+             
