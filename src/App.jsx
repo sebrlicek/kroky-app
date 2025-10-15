@@ -117,6 +117,11 @@ export default function App() {
     setStepsInput("");
   }
 
+  function startEdit(entry) {
+    setStepsInput(entry.steps);
+    setEditingId(entry.id);
+  }
+
   function removeEntry(id) {
     if (!confirm("Smazat záznam?")) return;
     setEntries((prev) => prev.filter((p) => p.id !== id));
@@ -170,10 +175,6 @@ export default function App() {
     alert(`Heslo pro uživatele "${user}" bylo změněno!`);
     setEditPasswords((prev) => ({ ...prev, [user]: "" }));
   }
-
-  const chartData = [...entries]
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .map((e) => ({ date: e.date, kroky: Number(e.steps), user: e.user }));
 
   // přihlašovací stránka
   if (!loggedInUser) {
@@ -233,14 +234,17 @@ export default function App() {
             onClick={handleLogout}
             className="px-3 py-1 border border-red-400 text-red-600 rounded-xl"
           >
-            Odhlásit
+            Odhlásit ({loggedInUser})
           </button>
         </header>
 
-        {/* Uživatel */}
+        {/* --- Uživatelská sekce --- */}
         {loggedInUser !== "admin" && (
           <>
-            <form onSubmit={addOrUpdateEntry} className="bg-white p-4 rounded-2xl shadow mb-6">
+            <form
+              onSubmit={addOrUpdateEntry}
+              className="bg-white p-4 rounded-2xl shadow mb-6"
+            >
               <h2 className="text-blue-600 font-semibold mb-2">Dnešní záznam</h2>
               <div className="flex gap-3">
                 <input
@@ -253,19 +257,63 @@ export default function App() {
                 <button className="bg-blue-600 text-white px-4 py-2 rounded-xl">
                   Přidat
                 </button>
-                {entries.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={clearAll}
-                    className="bg-red-500 text-white px-4 py-2 rounded-xl"
-                  >
-                    Smazat vše
-                  </button>
-                )}
               </div>
             </form>
 
-            {/* Nastavení účtu */}
+            <div className="bg-white p-4 rounded-2xl shadow mb-6">
+              <h3 className="text-blue-600 font-semibold mb-2">Moje záznamy</h3>
+              <table className="w-full text-sm border">
+                <thead>
+                  <tr className="bg-blue-100">
+                    <th className="border p-2">Datum</th>
+                    <th className="border p-2">Kroky</th>
+                    <th className="border p-2">Akce</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {entries.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="p-3 text-center text-gray-500">
+                        Zatím žádné záznamy
+                      </td>
+                    </tr>
+                  ) : (
+                    entries
+                      .sort((a, b) => b.date.localeCompare(a.date))
+                      .map((e) => (
+                        <tr key={e.id}>
+                          <td className="border p-2">{e.date}</td>
+                          <td className="border p-2">{e.steps}</td>
+                          <td className="border p-2">
+                            <button
+                              onClick={() => startEdit(e)}
+                              className="mr-2 text-blue-600"
+                            >
+                              Upravit
+                            </button>
+                            <button
+                              onClick={() => removeEntry(e.id)}
+                              className="text-red-600"
+                            >
+                              Smazat
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                  )}
+                </tbody>
+              </table>
+              {entries.length > 0 && (
+                <button
+                  onClick={clearAll}
+                  className="mt-3 bg-red-500 text-white px-4 py-2 rounded-xl"
+                >
+                  Smazat všechny záznamy
+                </button>
+              )}
+            </div>
+
+            {/* --- Nastavení účtu --- */}
             <div className="mb-6">
               <button
                 onClick={() => setShowSettings(!showSettings)}
@@ -309,10 +357,10 @@ export default function App() {
           </>
         )}
 
-        {/* Admin panel */}
+        {/* --- Admin panel --- */}
         {loggedInUser === "admin" && (
           <div className="bg-white p-4 rounded-2xl shadow">
-            <h2 className="text-blue-600 font-semibold mb-3">Admin – všichni uživatelé</h2>
+            <h2 className="text-blue-600 font-semibold mb-3">Admin – uživatelé</h2>
             <table className="w-full border mb-6 text-sm">
               <thead>
                 <tr className="bg-blue-100">
@@ -370,7 +418,9 @@ export default function App() {
               </tbody>
             </table>
 
-            <h3 className="text-blue-600 font-semibold mb-2">Všechny záznamy kroků</h3>
+            <h3 className="text-blue-600 font-semibold mb-2">
+              Všechny záznamy kroků
+            </h3>
             <table className="w-full border text-sm">
               <thead>
                 <tr className="bg-blue-100">
