@@ -56,10 +56,8 @@ export default function App() {
   }, [loggedInUser]);
 
   useEffect(() => {
-    if (!loggedInUser) return;
-    if (loggedInUser !== "admin") {
-      localStorage.setItem(`krokyData-${loggedInUser}`, JSON.stringify(entries));
-    }
+    if (!loggedInUser || loggedInUser === "admin") return;
+    localStorage.setItem(`krokyData-${loggedInUser}`, JSON.stringify(entries));
   }, [entries, loggedInUser]);
 
   function handleRegister(e) {
@@ -228,66 +226,4 @@ export default function App() {
                   type="submit"
                   className="px-4 py-2 rounded-xl bg-blue-600 text-white font-medium"
                 >
-                  {editingId ? "Uložit změnu" : "Přidat záznam"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStepsInput(0)}
-                  className="px-4 py-2 rounded-xl border border-blue-200 text-blue-700"
-                >
-                  Reset
-                </button>
-                {entries.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={clearAll}
-                    className="px-4 py-2 rounded-xl bg-red-500 text-white font-medium"
-                  >
-                    Vymazat vše
-                  </button>
-                )}
-              </div>
-            </form>
-          </section>
-        )}
-
-        <section className="bg-white rounded-2xl shadow p-4 mb-6">
-          <h2 className="font-semibold text-blue-700 mb-2">Graf kroků</h2>
-          <div style={{ height: 260 }} className="w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={chartData}
-                margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Line
-                  type="monotone"
-                  dataKey="kroky"
-                  stroke="#1D4ED8"
-                  strokeWidth={3}
-                  dot={{ r: 3 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </section>
-
-        <section className="bg-white rounded-2xl shadow p-4">
-          <h3 className="text-lg font-medium text-blue-700 mb-3">Záznamy</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm table-auto">
-              <thead>
-                <tr className="text-left text-blue-600">
-                  {loggedInUser === "admin" && <th className="p-2">Uživatel</th>}
-                  <th className="p-2">Datum</th>
-                  <th className="p-2">Kroky</th>
-                  <th className="p-2">Akce</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...entries]
-                  .sort((a, b) => b.date.localeCompare(a.date))
-                  .map((entry) => (
+                  {editingId ? "Uložit změnu" : "Př
