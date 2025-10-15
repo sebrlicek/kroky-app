@@ -25,7 +25,7 @@ export default function App() {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  // inicializace admin účtu
+  // vytvoření admin účtu
   useEffect(() => {
     const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
     const users = usersRaw ? JSON.parse(usersRaw) : {};
@@ -35,7 +35,7 @@ export default function App() {
     }
   }, []);
 
-  // načtení dat po přihlášení
+  // načtení záznamů po přihlášení
   useEffect(() => {
     if (!loggedInUser) return;
     const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
@@ -58,7 +58,7 @@ export default function App() {
     }
   }, [loggedInUser]);
 
-  // ukládání záznamů do localStorage
+  // ukládání dat
   useEffect(() => {
     if (!loggedInUser || loggedInUser === "admin") return;
     localStorage.setItem(`krokyData-${loggedInUser}`, JSON.stringify(entries));
@@ -162,6 +162,7 @@ export default function App() {
     setNewPassword("");
   }
 
+  // admin - mazání uživatelů
   function deleteUser(user) {
     if (!confirm(`Smazat uživatele "${user}" a jeho data?`)) return;
     const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
@@ -176,7 +177,7 @@ export default function App() {
     .sort((a, b) => a.date.localeCompare(b.date))
     .map((e) => ({ date: e.date, kroky: Number(e.steps), user: e.user }));
 
-  // Přihlašovací stránka
+  // přihlašovací stránka
   if (!loggedInUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-blue-50">
@@ -222,13 +223,13 @@ export default function App() {
     );
   }
 
-  // Hlavní stránka
+  // hlavní stránka
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-6">
       <div className="max-w-4xl mx-auto">
         <header className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-blue-700">
-            Kroky – {loggedInUser === "admin" ? "Admin panel" : loggedInUser}
+            {loggedInUser === "admin" ? "Admin panel" : "Moje kroky"}
           </h1>
           <button
             onClick={handleLogout}
@@ -238,7 +239,7 @@ export default function App() {
           </button>
         </header>
 
-        {/* Uživatelská část */}
+        {/* Uživatel */}
         {loggedInUser !== "admin" && (
           <>
             <form onSubmit={addOrUpdateEntry} className="bg-white p-4 rounded-2xl shadow mb-6">
@@ -266,26 +267,7 @@ export default function App() {
               </div>
             </form>
 
-            <div className="bg-white rounded-2xl shadow p-4 mb-6">
-              <h2 className="font-semibold text-blue-700 mb-2">Graf kroků</h2>
-              <div style={{ height: 260 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line
-                      type="monotone"
-                      dataKey="kroky"
-                      stroke="#1D4ED8"
-                      strokeWidth={3}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
+            {/* Nastavení účtu */}
             <div className="mb-6">
               <button
                 onClick={() => setShowSettings(!showSettings)}
@@ -332,13 +314,12 @@ export default function App() {
         {/* Admin panel */}
         {loggedInUser === "admin" && (
           <div className="bg-white p-4 rounded-2xl shadow">
-            <h2 className="text-blue-600 font-semibold mb-2">Admin – všichni uživatelé</h2>
-            <table className="w-full border">
+            <h2 className="text-blue-600 font-semibold mb-3">Admin – všichni uživatelé</h2>
+            <table className="w-full border mb-6">
               <thead>
                 <tr className="bg-blue-100">
                   <th className="border p-2">Uživatel</th>
                   <th className="border p-2">Heslo</th>
-                  <th className="border p-2">Záznamů</th>
                   <th className="border p-2">Akce</th>
                 </tr>
               </thead>
@@ -350,9 +331,6 @@ export default function App() {
                     <tr key={u}>
                       <td className="border p-2">{u}</td>
                       <td className="border p-2">{users[u]}</td>
-                      <td className="border p-2">
-                        {JSON.parse(localStorage.getItem(`krokyData-${u}`) || "[]").length}
-                      </td>
                       <td className="border p-2 text-center">
                         {u !== "admin" && (
                           <button
@@ -366,6 +344,35 @@ export default function App() {
                     </tr>
                   ));
                 })()}
+              </tbody>
+            </table>
+
+            <h3 className="text-blue-600 font-semibold mb-2">Všechny záznamy kroků</h3>
+            <table className="w-full border text-sm">
+              <thead>
+                <tr className="bg-blue-100">
+                  <th className="border p-2">Uživatel</th>
+                  <th className="border p-2">Datum</th>
+                  <th className="border p-2">Kroky</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entries.length === 0 && (
+                  <tr>
+                    <td colSpan="3" className="p-3 text-center text-gray-500">
+                      Zatím žádné záznamy.
+                    </td>
+                  </tr>
+                )}
+                {[...entries]
+                  .sort((a, b) => b.date.localeCompare(a.date))
+                  .map((e) => (
+                    <tr key={e.id}>
+                      <td className="border p-2">{e.user}</td>
+                      <td className="border p-2">{e.date}</td>
+                      <td className="border p-2">{e.steps}</td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
