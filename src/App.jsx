@@ -161,7 +161,7 @@ export default function App() {
 
           {isRegistering && (
             <ReCAPTCHA
-              sitekey="6LeofusrAAAAADMqNiyUmtRXJo_8yEbtlU5QqIc_" // <-- nahraď svým site key
+              sitekey="6Leqg-srAAAAAKezSixlM3gmV6wV7qzREZ05KXAA" // <-- nahraď svým site key
               onChange={(value) => setCaptchaValue(value)}
             />
           )}
