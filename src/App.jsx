@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   LineChart,
@@ -9,6 +8,7 @@ import {
   CartesianGrid,
   ResponsiveContainer,
 } from "recharts";
+import ReCAPTCHA from "react-google-recaptcha";
 
 export default function App() {
   const [loggedInUser, setLoggedInUser] = useState(null);
@@ -18,11 +18,11 @@ export default function App() {
   const [entries, setEntries] = useState([]);
   const [stepsInput, setStepsInput] = useState(0);
   const [editingId, setEditingId] = useState(null);
+  const [captchaValue, setCaptchaValue] = useState(null);
 
   const today = new Date().toISOString().slice(0, 10);
   const STORAGE_USERS_KEY = "krokyAppUsers";
 
-  // automaticky vytvořit admin účet při prvním načtení
   useEffect(() => {
     const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
     const users = usersRaw ? JSON.parse(usersRaw) : {};
@@ -32,7 +32,6 @@ export default function App() {
     }
   }, []);
 
-  // načtení záznamů po přihlášení
   useEffect(() => {
     if (!loggedInUser) return;
 
@@ -63,10 +62,10 @@ export default function App() {
     }
   }, [entries, loggedInUser]);
 
-  // registrace
   function handleRegister(e) {
     e.preventDefault();
     if (!usernameInput || !passwordInput) return alert("Vyplň uživatelské jméno i heslo");
+    if (!captchaValue) return alert("Ověř, že nejsi robot!");
 
     const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
     const users = usersRaw ? JSON.parse(usersRaw) : {};
@@ -75,13 +74,14 @@ export default function App() {
 
     users[usernameInput] = passwordInput;
     localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
+
     alert("Registrace úspěšná! Přihlaš se.");
     setIsRegistering(false);
     setUsernameInput("");
     setPasswordInput("");
+    setCaptchaValue(null);
   }
 
-  // login
   function handleLogin(e) {
     e.preventDefault();
     const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
@@ -135,13 +135,10 @@ export default function App() {
     localStorage.removeItem(`krokyData-${loggedInUser}`);
   }
 
-  const totalSteps = entries.reduce((s, e) => s + Number(e.steps || 0), 0);
-  const avgSteps = entries.length ? Math.round(totalSteps / entries.length) : 0;
   const chartData = [...entries]
     .sort((a, b) => a.date.localeCompare(b.date))
     .map((e) => ({ date: e.date, kroky: Number(e.steps), user: e.user }));
 
-  // --- login / registrace ---
   if (!loggedInUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-blue-50">
@@ -161,6 +158,14 @@ export default function App() {
             onChange={(e) => setPasswordInput(e.target.value)}
             className="w-full p-2 border rounded-md"
           />
+
+          {isRegistering && (
+            <ReCAPTCHA
+              sitekey="TVŮJ_SITE_KEY" // <-- nahraď svým site key
+              onChange={(value) => setCaptchaValue(value)}
+            />
+          )}
+
           <button type="submit" className="w-full px-4 py-2 rounded-xl bg-blue-600 text-white font-medium">
             {isRegistering ? "Registrovat" : "Přihlásit se"}
           </button>
@@ -179,7 +184,6 @@ export default function App() {
     );
   }
 
-  // --- hlavní aplikace ---
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-6">
       <div className="max-w-3xl mx-auto">
@@ -190,28 +194,26 @@ export default function App() {
           </button>
         </header>
 
-        {/* --- formulář kroků (ne pro admina) --- */}
         {loggedInUser !== "admin" && (
-        <section className="bg-white rounded-2xl shadow p-4 mb-6">
-          <form onSubmit={addOrUpdateEntry} className="space-y-3">
-            <div className="flex gap-2 items-center">
-              <label className="w-20 text-sm text-blue-600">Dnes</label>
-              <span className="flex-1 p-2 border rounded-md bg-gray-100 text-gray-700">{today}</span>
-            </div>
-            <div className="flex gap-2 items-center">
-              <label className="w-20 text-sm text-blue-600">Kroky</label>
-              <input type="number" value={stepsInput} onChange={(e) => setStepsInput(e.target.value)} className="flex-1 p-2 border rounded-md" min={0}/>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button type="submit" className="px-4 py-2 rounded-xl bg-blue-600 text-white font-medium">{editingId ? "Uložit změnu" : "Přidat záznam"}</button>
-              <button type="button" onClick={() => setStepsInput(0)} className="px-4 py-2 rounded-xl border border-blue-200 text-blue-700">Reset</button>
-              {entries.length>0 && <button type="button" onClick={clearAll} className="px-4 py-2 rounded-xl bg-red-500 text-white font-medium">Vymazat vše</button>}
-            </div>
-          </form>
-        </section>
+          <section className="bg-white rounded-2xl shadow p-4 mb-6">
+            <form onSubmit={addOrUpdateEntry} className="space-y-3">
+              <div className="flex gap-2 items-center">
+                <label className="w-20 text-sm text-blue-600">Dnes</label>
+                <span className="flex-1 p-2 border rounded-md bg-gray-100 text-gray-700">{today}</span>
+              </div>
+              <div className="flex gap-2 items-center">
+                <label className="w-20 text-sm text-blue-600">Kroky</label>
+                <input type="number" value={stepsInput} onChange={(e) => setStepsInput(e.target.value)} className="flex-1 p-2 border rounded-md" min={0}/>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button type="submit" className="px-4 py-2 rounded-xl bg-blue-600 text-white font-medium">{editingId ? "Uložit změnu" : "Přidat záznam"}</button>
+                <button type="button" onClick={() => setStepsInput(0)} className="px-4 py-2 rounded-xl border border-blue-200 text-blue-700">Reset</button>
+                {entries.length>0 && <button type="button" onClick={clearAll} className="px-4 py-2 rounded-xl bg-red-500 text-white font-medium">Vymazat vše</button>}
+              </div>
+            </form>
+          </section>
         )}
 
-        {/* --- graf kroků --- */}
         <section className="bg-white rounded-2xl shadow p-4 mb-6">
           <h2 className="font-semibold text-blue-700 mb-2">Graf kroků</h2>
           <div style={{height:260}} className="w-full">
@@ -227,7 +229,6 @@ export default function App() {
           </div>
         </section>
 
-        {/* --- tabulka záznamů --- */}
         <section className="bg-white rounded-2xl shadow p-4">
           <h3 className="text-lg font-medium text-blue-700 mb-3">Záznamy</h3>
           <div className="overflow-x-auto">
@@ -260,7 +261,6 @@ export default function App() {
           </div>
         </section>
 
-        {/* --- tabulka uživatelů a hesel pro admina --- */}
         {loggedInUser === "admin" && (
           <section className="bg-white rounded-2xl shadow p-4 mt-6">
             <h3 className="text-lg font-medium text-blue-700 mb-3">Všichni uživatelé</h3>
