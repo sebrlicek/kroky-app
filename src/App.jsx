@@ -14,6 +14,7 @@ export default function App() {
   const [mathVerified, setMathVerified] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [editPasswords, setEditPasswords] = useState({});
+  const [mathProblem, setMathProblem] = useState({ a: 0, b: 0 });
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -134,9 +135,18 @@ export default function App() {
   }
 
   // změna hesla (uživatel)
+  function openSettings() {
+    setShowSettings(!showSettings);
+    setMathVerified(false);
+    setMathAnswer("");
+    const a = Math.floor(Math.random() * 10) + 1;
+    const b = Math.floor(Math.random() * 10) + 1;
+    setMathProblem({ a, b });
+  }
+
   function verifyMath(e) {
     e.preventDefault();
-    if (Number(mathAnswer) === 23 * 10) setMathVerified(true);
+    if (Number(mathAnswer) === mathProblem.a * mathProblem.b) setMathVerified(true);
     else alert("Špatně! Zkus znovu.");
   }
 
@@ -316,7 +326,7 @@ export default function App() {
             {/* --- Nastavení účtu --- */}
             <div className="mb-6">
               <button
-                onClick={() => setShowSettings(!showSettings)}
+                onClick={openSettings}
                 className="bg-yellow-500 text-white px-4 py-2 rounded-xl"
               >
                 Nastavení účtu
@@ -326,7 +336,9 @@ export default function App() {
                 <div className="mt-3 bg-white p-4 rounded-2xl shadow">
                   {!mathVerified ? (
                     <form onSubmit={verifyMath}>
-                      <p>Zadej výsledek: 23 × 10</p>
+                      <p>
+                        Kolik je {mathProblem.a} × {mathProblem.b} ?
+                      </p>
                       <input
                         type="number"
                         value={mathAnswer}
@@ -443,7 +455,4 @@ export default function App() {
             </table>
           </div>
         )}
-      </div>
-    </div>
-  );
-}
+      </div
