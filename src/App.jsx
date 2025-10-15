@@ -10,28 +10,56 @@ import {
 } from "recharts";
 
 export default function App() {
-  const [loggedInUser, setLoggedInUser] = useState(null); // uloží přihlášeného uživatele
+  const [loggedInUser, setLoggedInUser] = useState(null);
   const [usernameInput, setUsernameInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
-  const [isRegistering, setIsRegistering] = useState(false); // přepínání formuláře
+  const [isRegistering, setIsRegistering] = useState(false);
   const [entries, setEntries] = useState([]);
   const [stepsInput, setStepsInput] = useState(0);
   const [editingId, setEditingId] = useState(null);
 
   const today = new Date().toISOString().slice(0, 10);
-
   const STORAGE_USERS_KEY = "krokyAppUsers";
 
-  // načtení dat po přihlášení
+  // automaticky vytvořit admin účet při prvním načtení
+  useEffect(() => {
+    const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
+    const users = usersRaw ? JSON.parse(usersRaw) : {};
+    if (!users["admin"]) {
+      users["admin"] = "admin";
+      localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
+    }
+  }, []);
+
+  // načtení záznamů po přihlášení
   useEffect(() => {
     if (!loggedInUser) return;
-    const raw = localStorage.getItem(`krokyData-${loggedInUser}`);
-    if (raw) setEntries(JSON.parse(raw));
+
+    const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
+    const users = usersRaw ? JSON.parse(usersRaw) : {};
+
+    if (loggedInUser === "admin") {
+      let allEntries = [];
+      Object.keys(users).forEach((u) => {
+        const raw = localStorage.getItem(`krokyData-${u}`);
+        if (raw) {
+          const data = JSON.parse(raw);
+          data.forEach((e) => (e.user = u));
+          allEntries = allEntries.concat(data);
+        }
+      });
+      setEntries(allEntries);
+    } else {
+      const raw = localStorage.getItem(`krokyData-${loggedInUser}`);
+      if (raw) setEntries(JSON.parse(raw));
+    }
   }, [loggedInUser]);
 
   useEffect(() => {
     if (!loggedInUser) return;
-    localStorage.setItem(`krokyData-${loggedInUser}`, JSON.stringify(entries));
+    if (loggedInUser !== "admin") {
+      localStorage.setItem(`krokyData-${loggedInUser}`, JSON.stringify(entries));
+    }
   }, [entries, loggedInUser]);
 
   // registrace
@@ -83,7 +111,7 @@ export default function App() {
     } else {
       setEntries((prev) => {
         const other = prev.filter((p) => p.date !== date);
-        const newEntry = { id: Date.now().toString(), date, steps };
+        const newEntry = { id: Date.now().toString(), date, steps, user: loggedInUser };
         return [...other, newEntry].sort((a, b) => a.date.localeCompare(b.date));
       });
     }
@@ -110,10 +138,10 @@ export default function App() {
   const avgSteps = entries.length ? Math.round(totalSteps / entries.length) : 0;
   const chartData = [...entries]
     .sort((a, b) => a.date.localeCompare(b.date))
-    .map((e) => ({ date: e.date, kroky: Number(e.steps) }));
+    .map((e) => ({ date: e.date, kroky: Number(e.steps), user: e.user }));
 
+  // --- login / registrace ---
   if (!loggedInUser) {
-    // zobrazení login/registrace
     return (
       <div className="min-h-screen flex items-center justify-center bg-blue-50">
         <form className="bg-white p-8 rounded-2xl shadow space-y-4 w-80 text-center" onSubmit={isRegistering ? handleRegister : handleLogin}>
@@ -150,7 +178,7 @@ export default function App() {
     );
   }
 
-  // hlavní aplikace
+  // --- hlavní aplikace ---
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-6">
       <div className="max-w-3xl mx-auto">
@@ -161,7 +189,8 @@ export default function App() {
           </button>
         </header>
 
-        {/* --- formulář kroků --- */}
+        {/* --- formulář kroků (ne pro admina) --- */}
+        {loggedInUser !== "admin" && (
         <section className="bg-white rounded-2xl shadow p-4 mb-6">
           <form onSubmit={addOrUpdateEntry} className="space-y-3">
             <div className="flex gap-2 items-center">
@@ -177,13 +206,9 @@ export default function App() {
               <button type="button" onClick={() => setStepsInput(0)} className="px-4 py-2 rounded-xl border border-blue-200 text-blue-700">Reset</button>
               {entries.length>0 && <button type="button" onClick={clearAll} className="px-4 py-2 rounded-xl bg-red-500 text-white font-medium">Vymazat vše</button>}
             </div>
-            <div className="mt-4 text-sm text-blue-600">
-              <div>Počet záznamů: <strong className="text-blue-800">{entries.length}</strong></div>
-              <div>Celkem kroků: <strong className="text-blue-800">{totalSteps}</strong></div>
-              <div>Průměr: <strong className="text-blue-800">{avgSteps} kroků/den</strong></div>
-            </div>
           </form>
         </section>
+        )}
 
         {/* --- graf kroků --- */}
         <section className="bg-white rounded-2xl shadow p-4 mb-6">
@@ -201,13 +226,14 @@ export default function App() {
           </div>
         </section>
 
-        {/* --- tabulka --- */}
+        {/* --- tabulka záznamů --- */}
         <section className="bg-white rounded-2xl shadow p-4">
           <h3 className="text-lg font-medium text-blue-700 mb-3">Záznamy</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm table-auto">
               <thead>
                 <tr className="text-left text-blue-600">
+                  {loggedInUser === "admin" && <th className="p-2">Uživatel</th>}
                   <th className="p-2">Datum</th>
                   <th className="p-2">Kroky</th>
                   <th className="p-2">Akce</th>
@@ -216,19 +242,30 @@ export default function App() {
               <tbody>
                 {[...entries].sort((a,b)=>b.date.localeCompare(a.date)).map(entry=>(
                   <tr key={entry.id} className="border-t">
+                    {loggedInUser === "admin" && <td className="p-2 align-top">{entry.user}</td>}
                     <td className="p-2 align-top">{entry.date}</td>
                     <td className="p-2 align-top">{entry.steps.toLocaleString()}</td>
                     <td className="p-2 align-top">
-                      <button onClick={()=>startEdit(entry)} className="mr-2 text-sm px-3 py-1 rounded-md border border-blue-100">Upravit</button>
-                      <button onClick={()=>removeEntry(entry.id)} className="text-sm px-3 py-1 rounded-md bg-red-50 text-red-600 border border-red-100">Smazat</button>
+                      {loggedInUser !== "admin" && <>
+                        <button onClick={()=>startEdit(entry)} className="mr-2 text-sm px-3 py-1 rounded-md border border-blue-100">Upravit</button>
+                        <button onClick={()=>removeEntry(entry.id)} className="text-sm px-3 py-1 rounded-md bg-red-50 text-red-600 border border-red-100">Smazat</button>
+                      </>}
                     </td>
                   </tr>
                 ))}
-                {entries.length===0 && <tr><td colSpan={3} className="p-4 text-center text-gray-500">Zatím žádné záznamy. Zapiš dnešní kroky.</td></tr>}
+                {entries.length===0 && <tr><td colSpan={loggedInUser==="admin"?4:3} className="p-4 text-center text-gray-500">Zatím žádné záznamy. Zapiš dnešní kroky.</td></tr>}
               </tbody>
             </table>
           </div>
         </section>
+
+        {/* --- seznam uživatelů a hesel pro admina --- */}
+        {loggedInUser === "admin" && (
+          <section className="bg-white rounded-2xl shadow p-4 mt-6">
+            <h3 className="text-lg font-medium text-blue-700 mb-3">Všichni uživatelé (uživatelská jména a hesla)</h3>
+            <pre className="text-sm text-gray-700">{localStorage.getItem(STORAGE_USERS_KEY)}</pre>
+          </section>
+        )}
 
       </div>
     </div>
