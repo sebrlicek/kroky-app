@@ -15,11 +15,12 @@ export default function App() {
   const [usernameInput, setUsernameInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [entries, setEntries] = useState([]);
-  const [dateInput, setDateInput] = useState(new Date().toISOString().slice(0, 10));
   const [stepsInput, setStepsInput] = useState(0);
   const [editingId, setEditingId] = useState(null);
 
-  // Načtení dat po přihlášení
+  const today = new Date().toISOString().slice(0, 10); // dnešní datum
+
+  // načtení dat po přihlášení
   useEffect(() => {
     if (!loggedIn) return;
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -31,7 +32,7 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
   }, [entries, loggedIn]);
 
-  // Login
+  // login
   function handleLogin(e) {
     e.preventDefault();
     if (usernameInput === "admin" && passwordInput === "admin") {
@@ -50,14 +51,17 @@ export default function App() {
 
   function addOrUpdateEntry(e) {
     e.preventDefault();
-    const date = dateInput;
     const steps = Number(stepsInput) || 0;
-    if (!date) return;
+    const date = today;
+
     if (editingId) {
-      setEntries((prev) => prev.map((it) => (it.id === editingId ? { ...it, date, steps } : it)));
+      setEntries((prev) =>
+        prev.map((it) => (it.id === editingId ? { ...it, steps } : it))
+      );
       setEditingId(null);
     } else {
       setEntries((prev) => {
+        // pokud už dnes existuje záznam, přepiš ho
         const other = prev.filter((p) => p.date !== date);
         const newEntry = { id: Date.now().toString(), date, steps };
         return [...other, newEntry].sort((a, b) => a.date.localeCompare(b.date));
@@ -67,7 +71,6 @@ export default function App() {
   }
 
   function startEdit(entry) {
-    setDateInput(entry.date);
     setStepsInput(entry.steps);
     setEditingId(entry.id);
   }
@@ -131,12 +134,12 @@ export default function App() {
           </button>
         </header>
 
-        {/* --- formulář a data kroků --- */}
+        {/* --- formulář kroků pro dnešek --- */}
         <section className="bg-white rounded-2xl shadow p-4 mb-6">
           <form onSubmit={addOrUpdateEntry} className="space-y-3">
             <div className="flex gap-2 items-center">
-              <label className="w-20 text-sm text-blue-600">Datum</label>
-              <input type="date" value={dateInput} onChange={(e) => setDateInput(e.target.value)} className="flex-1 p-2 border rounded-md"/>
+              <label className="w-20 text-sm text-blue-600">Dnes</label>
+              <span className="flex-1 p-2 border rounded-md bg-gray-100 text-gray-700">{today}</span>
             </div>
             <div className="flex gap-2 items-center">
               <label className="w-20 text-sm text-blue-600">Kroky</label>
@@ -144,15 +147,15 @@ export default function App() {
             </div>
             <div className="flex flex-wrap gap-2">
               <button type="submit" className="px-4 py-2 rounded-xl bg-blue-600 text-white font-medium">{editingId ? "Uložit změnu" : "Přidat záznam"}</button>
-              <button type="button" onClick={() => {setDateInput(new Date().toISOString().slice(0,10)); setStepsInput(0); setEditingId(null)}} className="px-4 py-2 rounded-xl border border-blue-200 text-blue-700">Reset</button>
+              <button type="button" onClick={() => setStepsInput(0)} className="px-4 py-2 rounded-xl border border-blue-200 text-blue-700">Reset</button>
               {entries.length>0 && <button type="button" onClick={clearAll} className="px-4 py-2 rounded-xl bg-red-500 text-white font-medium">Vymazat vše</button>}
             </div>
+            <div className="mt-4 text-sm text-blue-600">
+              <div>Počet záznamů: <strong className="text-blue-800">{entries.length}</strong></div>
+              <div>Celkem kroků: <strong className="text-blue-800">{totalSteps}</strong></div>
+              <div>Průměr: <strong className="text-blue-800">{avgSteps} kroků/den</strong></div>
+            </div>
           </form>
-          <div className="mt-4 text-sm text-blue-600">
-            <div>Počet záznamů: <strong className="text-blue-800">{entries.length}</strong></div>
-            <div>Celkem kroků: <strong className="text-blue-800">{totalSteps}</strong></div>
-            <div>Průměr: <strong className="text-blue-800">{avgSteps} kroků/den</strong></div>
-          </div>
         </section>
 
         {/* --- graf kroků --- */}
@@ -199,7 +202,6 @@ export default function App() {
             </table>
           </div>
         </section>
-
       </div>
     </div>
   );
