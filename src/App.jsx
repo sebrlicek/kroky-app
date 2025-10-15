@@ -21,6 +21,7 @@ export default function App() {
   const today = new Date().toISOString().slice(0, 10);
   const STORAGE_USERS_KEY = "krokyAppUsers";
 
+  // Vytvoření admin účtu při prvním načtení
   useEffect(() => {
     const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
     const users = usersRaw ? JSON.parse(usersRaw) : {};
@@ -30,6 +31,7 @@ export default function App() {
     }
   }, []);
 
+  // Načtení záznamů po přihlášení
   useEffect(() => {
     if (!loggedInUser) return;
 
@@ -60,6 +62,7 @@ export default function App() {
     }
   }, [entries, loggedInUser]);
 
+  // Registrace
   function handleRegister(e) {
     e.preventDefault();
     if (!usernameInput || !passwordInput) return alert("Vyplň uživatelské jméno i heslo");
@@ -78,6 +81,7 @@ export default function App() {
     setPasswordInput("");
   }
 
+  // Login
   function handleLogin(e) {
     e.preventDefault();
     const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
@@ -145,6 +149,7 @@ export default function App() {
     .sort((a, b) => a.date.localeCompare(b.date))
     .map((e) => ({ date: e.date, kroky: Number(e.steps), user: e.user }));
 
+  // Login / Registrace
   if (!loggedInUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-blue-50">
@@ -155,7 +160,6 @@ export default function App() {
           <h1 className="text-2xl font-bold text-blue-700 mb-2">
             {isRegistering ? "Registrace" : "Přihlášení"}
           </h1>
-
           <input
             type="text"
             placeholder="Uživatelské jméno"
@@ -170,14 +174,12 @@ export default function App() {
             onChange={(e) => setPasswordInput(e.target.value)}
             className="w-full p-2 border rounded-md"
           />
-
           <button
             type="submit"
             className="w-full px-4 py-2 rounded-xl bg-blue-600 text-white font-medium"
           >
             {isRegistering ? "Registrovat" : "Přihlásit se"}
           </button>
-
           <p className="text-sm text-blue-700 mt-2">
             {isRegistering ? "Máš už účet?" : "Nemáš účet?"}{" "}
             <button
@@ -193,6 +195,7 @@ export default function App() {
     );
   }
 
+  // Hlavní aplikace
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-6">
       <div className="max-w-3xl mx-auto">
@@ -255,7 +258,7 @@ export default function App() {
           </div>
         </section>
 
-        <section className="bg-white rounded-2xl shadow p-4">
+        <section className="bg-white rounded-2xl shadow p-4 mb-6">
           <h3 className="text-lg font-medium text-blue-700 mb-3">Záznamy</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm table-auto">
@@ -267,4 +270,75 @@ export default function App() {
                   <th className="p-2">Akce</th>
                 </tr>
               </thead>
-             
+              <tbody>
+                {[...entries].sort((a,b)=>b.date.localeCompare(a.date)).map(entry=>(
+                  <tr key={entry.id} className="border-t">
+                    {loggedInUser === "admin" && <td className="p-2 align-top">{entry.user}</td>}
+                    <td className="p-2 align-top">{entry.date}</td>
+                    <td className="p-2 align-top">{entry.steps.toLocaleString()}</td>
+                    <td className="p-2 align-top">
+                      {loggedInUser !== "admin" && <>
+                        <button onClick={()=>startEdit(entry)} className="mr-2 text-sm px-3 py-1 rounded-md border border-blue-100">Upravit</button>
+                        <button onClick={()=>removeEntry(entry.id)} className="text-sm px-3 py-1 rounded-md bg-red-50 text-red-600 border border-red-100">Smazat</button>
+                      </>}
+                    </td>
+                  </tr>
+                ))}
+                {entries.length===0 && <tr><td colSpan={loggedInUser==="admin"?4:3} className="p-4 text-center text-gray-500">Zatím žádné záznamy. Zapiš dnešní kroky.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {loggedInUser === "admin" && (
+          <section className="bg-white rounded-2xl shadow p-4 mt-6">
+            <h3 className="text-lg font-medium text-blue-700 mb-3">Všichni uživatelé</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm table-auto">
+                <thead>
+                  <tr className="text-left text-blue-600">
+                    <th className="p-2">Uživatel</th>
+                    <th className="p-2">Heslo</th>
+                    <th className="p-2">Akce</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
+                    const users = usersRaw ? JSON.parse(usersRaw) : {};
+                    const entries = Object.entries(users);
+                    if (entries.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={3} className="p-4 text-center text-gray-500">
+                            Žádní uživatelé
+                          </td>
+                        </tr>
+                      );
+                    }
+                    return entries.map(([user, pass]) => (
+                      <tr key={user} className="border-t">
+                        <td className="p-2">{user}</td>
+                        <td className="p-2">{pass}</td>
+                        <td className="p-2">
+                          {user !== "admin" && (
+                            <button
+                              onClick={() => deleteUser(user)}
+                              className="px-3 py-1 text-sm bg-red-500 text-white rounded-md"
+                            >
+                              Smazat
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ));
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+      </div>
+    </div>
+  );
+}
