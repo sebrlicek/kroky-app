@@ -10,15 +10,20 @@ import {
 } from "recharts";
 
 export default function KrokyAplikace() {
-  const STORAGE_KEY = "krokyData-v2";
+  const STORAGE_KEY = "krokyData-admin";
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [usernameInput, setUsernameInput] = useState("");
+  const [passwordInput, setPasswordInput] = useState("");
   const [entries, setEntries] = useState([]);
-  const [dateInput, setDateInput] = useState(() =>
+  const [dateInput, setDateInput] = useState(
     new Date().toISOString().slice(0, 10)
   );
   const [stepsInput, setStepsInput] = useState(0);
   const [editingId, setEditingId] = useState(null);
 
+  // načtení dat při přihlášení
   useEffect(() => {
+    if (!loggedIn) return;
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       try {
@@ -27,11 +32,28 @@ export default function KrokyAplikace() {
         console.error("Chyba při načítání dat z localStorage", e);
       }
     }
-  }, []);
+  }, [loggedIn]);
 
   useEffect(() => {
+    if (!loggedIn) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-  }, [entries]);
+  }, [entries, loggedIn]);
+
+  function handleLogin(e) {
+    e.preventDefault();
+    if (usernameInput === "admin" && passwordInput === "admin") {
+      setLoggedIn(true);
+      setUsernameInput("");
+      setPasswordInput("");
+    } else {
+      alert("Špatné uživatelské jméno nebo heslo!");
+    }
+  }
+
+  function handleLogout() {
+    setLoggedIn(false);
+    setEntries([]);
+  }
 
   function addOrUpdateEntry(e) {
     e.preventDefault();
@@ -66,7 +88,6 @@ export default function KrokyAplikace() {
     setEntries((prev) => prev.filter((p) => p.id !== id));
   }
 
-  // 🧹 Nová funkce: smazání všech záznamů
   function clearAll() {
     if (!confirm("Opravdu chceš smazat všechny záznamy?")) return;
     setEntries([]);
@@ -75,17 +96,56 @@ export default function KrokyAplikace() {
 
   const totalSteps = entries.reduce((s, e) => s + Number(e.steps || 0), 0);
   const avgSteps = entries.length ? Math.round(totalSteps / entries.length) : 0;
-
   const chartData = [...entries]
     .sort((a, b) => a.date.localeCompare(b.date))
     .map((e) => ({ date: e.date, kroky: Number(e.steps) }));
 
+  // --- login obrazovka ---
+  if (!loggedIn) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-blue-50">
+        <form
+          onSubmit={handleLogin}
+          className="bg-white p-8 rounded-2xl shadow space-y-4 w-80 text-center"
+        >
+          <h1 className="text-2xl font-bold text-blue-700">Přihlášení</h1>
+          <input
+            type="text"
+            placeholder="Uživatelské jméno"
+            value={usernameInput}
+            onChange={(e) => setUsernameInput(e.target.value)}
+            className="w-full p-2 border rounded-md"
+          />
+          <input
+            type="password"
+            placeholder="Heslo"
+            value={passwordInput}
+            onChange={(e) => setPasswordInput(e.target.value)}
+            className="w-full p-2 border rounded-md"
+          />
+          <button
+            type="submit"
+            className="w-full px-4 py-2 rounded-xl bg-blue-600 text-white font-medium"
+          >
+            Přihlásit se
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  // --- hlavní aplikace ---
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-6">
       <div className="max-w-3xl mx-auto">
         <header className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-blue-700">Moje denní kroky</h1>
-          <div className="text-sm text-blue-600">Ruční zápis kroků</div>
+          <button
+            onClick={handleLogout}
+            className="px-3 py-1 rounded-xl border border-red-400 text-red-600 text-sm"
+          >
+            Odhlásit
+          </button>
         </header>
 
         <main className="space-y-6">
@@ -130,8 +190,6 @@ export default function KrokyAplikace() {
                 >
                   Reset
                 </button>
-
-                {/* 🧹 Tlačítko pro smazání všech záznamů */}
                 {entries.length > 0 && (
                   <button
                     type="button"
@@ -155,9 +213,7 @@ export default function KrokyAplikace() {
               </div>
               <div>
                 Průměr:{" "}
-                <strong className="text-blue-800">
-                  {avgSteps} kroků/den
-                </strong>
+                <strong className="text-blue-800">{avgSteps} kroků/den</strong>
               </div>
             </div>
           </section>
@@ -194,54 +250,4 @@ export default function KrokyAplikace() {
                   <tr className="text-left text-blue-600">
                     <th className="p-2">Datum</th>
                     <th className="p-2">Kroky</th>
-                    <th className="p-2">Akce</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...entries]
-                    .sort((a, b) => b.date.localeCompare(a.date))
-                    .map((entry) => (
-                      <tr key={entry.id} className="border-t">
-                        <td className="p-2 align-top">{entry.date}</td>
-                        <td className="p-2 align-top">
-                          {entry.steps.toLocaleString()}
-                        </td>
-                        <td className="p-2 align-top">
-                          <button
-                            onClick={() => startEdit(entry)}
-                            className="mr-2 text-sm px-3 py-1 rounded-md border border-blue-100"
-                          >
-                            Upravit
-                          </button>
-                          <button
-                            onClick={() => removeEntry(entry.id)}
-                            className="text-sm px-3 py-1 rounded-md bg-red-50 text-red-600 border border-red-100"
-                          >
-                            Smazat
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  {entries.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={3}
-                        className="p-4 text-center text-gray-500"
-                      >
-                        Zatím žádné záznamy. Zapiš dnešní kroky.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </main>
-
-        <footer className="mt-8 text-center text-xs text-gray-500">
-          Aplikace pro ruční zápis kroků — jednoduchá a modrá.
-        </footer>
-      </div>
-    </div>
-  );
-}
+                    <th
