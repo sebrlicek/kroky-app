@@ -155,7 +155,7 @@ export default function App() {
     setEntries((prev) => prev.filter((e) => e.user !== user));
   }
 
-  // --- Nastavení účtu ---
+  // Nastavení účtu
   function verifyMath(e) {
     e.preventDefault();
     if (Number(mathAnswer) === 23 * 10) {
@@ -244,7 +244,7 @@ export default function App() {
           </button>
         </header>
 
-        {/* --- Přidávání kroků --- */}
+        {/* Přidávání kroků */}
         {loggedInUser !== "admin" && (
           <section className="bg-white rounded-2xl shadow p-4 mb-6">
             <form onSubmit={addOrUpdateEntry} className="space-y-3">
@@ -262,4 +262,8 @@ export default function App() {
                   min={0}
                 />
               </div>
-             
+              <div className="flex flex-wrap gap-2">
+                <button type="submit" className="px-4 py-2 rounded-xl bg-blue-600 text-white font-medium">
+                  {editingId ? "Uložit změnu" : "Přidat záznam"}
+                </button>
+                <button type="button" onClick={() => setStepsInput(0)} className="px-4 py-2 rounded-xl border border-blue
