@@ -10,42 +10,63 @@ import {
 } from "recharts";
 
 export default function App() {
-  const STORAGE_KEY = "krokyData-admin";
-  const [loggedIn, setLoggedIn] = useState(false);
+  const [loggedInUser, setLoggedInUser] = useState(null); // uloží přihlášeného uživatele
   const [usernameInput, setUsernameInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
+  const [isRegistering, setIsRegistering] = useState(false); // přepínání formuláře
   const [entries, setEntries] = useState([]);
   const [stepsInput, setStepsInput] = useState(0);
   const [editingId, setEditingId] = useState(null);
 
-  const today = new Date().toISOString().slice(0, 10); // dnešní datum
+  const today = new Date().toISOString().slice(0, 10);
+
+  const STORAGE_USERS_KEY = "krokyAppUsers";
 
   // načtení dat po přihlášení
   useEffect(() => {
-    if (!loggedIn) return;
-    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!loggedInUser) return;
+    const raw = localStorage.getItem(`krokyData-${loggedInUser}`);
     if (raw) setEntries(JSON.parse(raw));
-  }, [loggedIn]);
+  }, [loggedInUser]);
 
   useEffect(() => {
-    if (!loggedIn) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-  }, [entries, loggedIn]);
+    if (!loggedInUser) return;
+    localStorage.setItem(`krokyData-${loggedInUser}`, JSON.stringify(entries));
+  }, [entries, loggedInUser]);
+
+  // registrace
+  function handleRegister(e) {
+    e.preventDefault();
+    if (!usernameInput || !passwordInput) return alert("Vyplň uživatelské jméno i heslo");
+
+    const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
+    const users = usersRaw ? JSON.parse(usersRaw) : {};
+
+    if (users[usernameInput]) return alert("Uživatel již existuje!");
+
+    users[usernameInput] = passwordInput;
+    localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
+    alert("Registrace úspěšná! Přihlaš se.");
+    setIsRegistering(false);
+    setUsernameInput("");
+    setPasswordInput("");
+  }
 
   // login
   function handleLogin(e) {
     e.preventDefault();
-    if (usernameInput === "admin" && passwordInput === "admin") {
-      setLoggedIn(true);
-      setUsernameInput("");
-      setPasswordInput("");
-    } else {
-      alert("Špatné uživatelské jméno nebo heslo!");
+    const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
+    const users = usersRaw ? JSON.parse(usersRaw) : {};
+    if (!users[usernameInput] || users[usernameInput] !== passwordInput) {
+      return alert("Špatné uživatelské jméno nebo heslo!");
     }
+    setLoggedInUser(usernameInput);
+    setUsernameInput("");
+    setPasswordInput("");
   }
 
   function handleLogout() {
-    setLoggedIn(false);
+    setLoggedInUser(null);
     setEntries([]);
   }
 
@@ -61,7 +82,6 @@ export default function App() {
       setEditingId(null);
     } else {
       setEntries((prev) => {
-        // pokud už dnes existuje záznam, přepiš ho
         const other = prev.filter((p) => p.date !== date);
         const newEntry = { id: Date.now().toString(), date, steps };
         return [...other, newEntry].sort((a, b) => a.date.localeCompare(b.date));
@@ -83,7 +103,7 @@ export default function App() {
   function clearAll() {
     if (!confirm("Opravdu chceš smazat všechny záznamy?")) return;
     setEntries([]);
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(`krokyData-${loggedInUser}`);
   }
 
   const totalSteps = entries.reduce((s, e) => s + Number(e.steps || 0), 0);
@@ -92,15 +112,12 @@ export default function App() {
     .sort((a, b) => a.date.localeCompare(b.date))
     .map((e) => ({ date: e.date, kroky: Number(e.steps) }));
 
-  // --- login obrazovka ---
-  if (!loggedIn) {
+  if (!loggedInUser) {
+    // zobrazení login/registrace
     return (
       <div className="min-h-screen flex items-center justify-center bg-blue-50">
-        <form
-          onSubmit={handleLogin}
-          className="bg-white p-8 rounded-2xl shadow space-y-4 w-80 text-center"
-        >
-          <h1 className="text-2xl font-bold text-blue-700">Přihlášení</h1>
+        <form className="bg-white p-8 rounded-2xl shadow space-y-4 w-80 text-center" onSubmit={isRegistering ? handleRegister : handleLogin}>
+          <h1 className="text-2xl font-bold text-blue-700 mb-2">{isRegistering ? "Registrace" : "Přihlášení"}</h1>
           <input
             type="text"
             placeholder="Uživatelské jméno"
@@ -116,25 +133,35 @@ export default function App() {
             className="w-full p-2 border rounded-md"
           />
           <button type="submit" className="w-full px-4 py-2 rounded-xl bg-blue-600 text-white font-medium">
-            Přihlásit se
+            {isRegistering ? "Registrovat" : "Přihlásit se"}
           </button>
+          <p className="text-sm text-blue-700 mt-2">
+            {isRegistering ? "Máš už účet?" : "Nemáš účet?"}{" "}
+            <button
+              type="button"
+              onClick={() => setIsRegistering(!isRegistering)}
+              className="underline"
+            >
+              {isRegistering ? "Přihlásit se" : "Registrovat"}
+            </button>
+          </p>
         </form>
       </div>
     );
   }
 
-  // --- hlavní aplikace ---
+  // hlavní aplikace
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-6">
       <div className="max-w-3xl mx-auto">
         <header className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-blue-700">Moje denní kroky</h1>
           <button onClick={handleLogout} className="px-3 py-1 rounded-xl border border-red-400 text-red-600 text-sm">
-            Odhlásit
+            Odhlásit ({loggedInUser})
           </button>
         </header>
 
-        {/* --- formulář kroků pro dnešek --- */}
+        {/* --- formulář kroků --- */}
         <section className="bg-white rounded-2xl shadow p-4 mb-6">
           <form onSubmit={addOrUpdateEntry} className="space-y-3">
             <div className="flex gap-2 items-center">
@@ -174,7 +201,7 @@ export default function App() {
           </div>
         </section>
 
-        {/* --- tabulka záznamů --- */}
+        {/* --- tabulka --- */}
         <section className="bg-white rounded-2xl shadow p-4">
           <h3 className="text-lg font-medium text-blue-700 mb-3">Záznamy</h3>
           <div className="overflow-x-auto">
@@ -202,6 +229,7 @@ export default function App() {
             </table>
           </div>
         </section>
+
       </div>
     </div>
   );
