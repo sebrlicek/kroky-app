@@ -8,7 +8,6 @@ import {
   CartesianGrid,
   ResponsiveContainer,
 } from "recharts";
-import ReCAPTCHA from "react-google-recaptcha";
 
 export default function App() {
   const [loggedInUser, setLoggedInUser] = useState(null);
@@ -18,7 +17,6 @@ export default function App() {
   const [entries, setEntries] = useState([]);
   const [stepsInput, setStepsInput] = useState(0);
   const [editingId, setEditingId] = useState(null);
-  const [captchaValue, setCaptchaValue] = useState(null);
 
   const today = new Date().toISOString().slice(0, 10);
   const STORAGE_USERS_KEY = "krokyAppUsers";
@@ -56,14 +54,15 @@ export default function App() {
   }, [loggedInUser]);
 
   useEffect(() => {
-    if (!loggedInUser || loggedInUser === "admin") return;
-    localStorage.setItem(`krokyData-${loggedInUser}`, JSON.stringify(entries));
+    if (!loggedInUser) return;
+    if (loggedInUser !== "admin") {
+      localStorage.setItem(`krokyData-${loggedInUser}`, JSON.stringify(entries));
+    }
   }, [entries, loggedInUser]);
 
   function handleRegister(e) {
     e.preventDefault();
     if (!usernameInput || !passwordInput) return alert("Vyplň uživatelské jméno i heslo");
-    if (!captchaValue) return alert("Ověř, že nejsi robot!");
 
     const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
     const users = usersRaw ? JSON.parse(usersRaw) : {};
@@ -77,7 +76,6 @@ export default function App() {
     setIsRegistering(false);
     setUsernameInput("");
     setPasswordInput("");
-    setCaptchaValue(null);
   }
 
   function handleLogin(e) {
@@ -133,6 +131,16 @@ export default function App() {
     localStorage.removeItem(`krokyData-${loggedInUser}`);
   }
 
+  function deleteUser(user) {
+    if (!confirm(`Opravdu chceš smazat uživatele "${user}" a jeho záznamy?`)) return;
+    const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
+    const users = usersRaw ? JSON.parse(usersRaw) : {};
+    delete users[user];
+    localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
+    localStorage.removeItem(`krokyData-${user}`);
+    setEntries((prev) => prev.filter((e) => e.user !== user));
+  }
+
   const chartData = [...entries]
     .sort((a, b) => a.date.localeCompare(b.date))
     .map((e) => ({ date: e.date, kroky: Number(e.steps), user: e.user }));
@@ -163,19 +171,13 @@ export default function App() {
             className="w-full p-2 border rounded-md"
           />
 
-          {isRegistering && (
-            <ReCAPTCHA
-              sitekey="6Leqg-srAAAAAKezSixlM3gmV6wV7qzREZ05KXAA"
-              onChange={(value) => setCaptchaValue(value)}
-            />
-          )}
-
           <button
             type="submit"
             className="w-full px-4 py-2 rounded-xl bg-blue-600 text-white font-medium"
           >
             {isRegistering ? "Registrovat" : "Přihlásit se"}
           </button>
+
           <p className="text-sm text-blue-700 mt-2">
             {isRegistering ? "Máš už účet?" : "Nemáš účet?"}{" "}
             <button
@@ -222,8 +224,47 @@ export default function App() {
                 />
               </div>
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-xl bg-blue-600 text-white font-medium"
-                >
-                  {editingId ? "Uložit změnu" : "Př
+                <button type="submit" className="px-4 py-2 rounded-xl bg-blue-600 text-white font-medium">
+                  {editingId ? "Uložit změnu" : "Přidat záznam"}
+                </button>
+                <button type="button" onClick={() => setStepsInput(0)} className="px-4 py-2 rounded-xl border border-blue-200 text-blue-700">
+                  Reset
+                </button>
+                {entries.length > 0 && (
+                  <button type="button" onClick={clearAll} className="px-4 py-2 rounded-xl bg-red-500 text-white font-medium">
+                    Vymazat vše
+                  </button>
+                )}
+              </div>
+            </form>
+          </section>
+        )}
+
+        <section className="bg-white rounded-2xl shadow p-4 mb-6">
+          <h2 className="font-semibold text-blue-700 mb-2">Graf kroků</h2>
+          <div style={{ height: 260 }} className="w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="kroky" stroke="#1D4ED8" strokeWidth={3} dot={{ r: 3 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
+
+        <section className="bg-white rounded-2xl shadow p-4">
+          <h3 className="text-lg font-medium text-blue-700 mb-3">Záznamy</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm table-auto">
+              <thead>
+                <tr className="text-left text-blue-600">
+                  {loggedInUser === "admin" && <th className="p-2">Uživatel</th>}
+                  <th className="p-2">Datum</th>
+                  <th className="p-2">Kroky</th>
+                  <th className="p-2">Akce</th>
+                </tr>
+              </thead>
+             
