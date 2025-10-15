@@ -1,13 +1,4 @@
 import React, { useState, useEffect } from "react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  ResponsiveContainer,
-} from "recharts";
 
 export default function App() {
   const STORAGE_USERS_KEY = "krokyAppUsers";
@@ -22,6 +13,7 @@ export default function App() {
   const [mathAnswer, setMathAnswer] = useState("");
   const [mathVerified, setMathVerified] = useState(false);
   const [newPassword, setNewPassword] = useState("");
+  const [editPasswords, setEditPasswords] = useState({});
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -125,11 +117,6 @@ export default function App() {
     setStepsInput("");
   }
 
-  function startEdit(entry) {
-    setStepsInput(entry.steps);
-    setEditingId(entry.id);
-  }
-
   function removeEntry(id) {
     if (!confirm("Smazat záznam?")) return;
     setEntries((prev) => prev.filter((p) => p.id !== id));
@@ -141,7 +128,7 @@ export default function App() {
     localStorage.removeItem(`krokyData-${loggedInUser}`);
   }
 
-  // změna hesla
+  // změna hesla (uživatel)
   function verifyMath(e) {
     e.preventDefault();
     if (Number(mathAnswer) === 23 * 10) setMathVerified(true);
@@ -162,7 +149,7 @@ export default function App() {
     setNewPassword("");
   }
 
-  // admin - mazání uživatelů
+  // admin - mazání a změna hesla uživatelům
   function deleteUser(user) {
     if (!confirm(`Smazat uživatele "${user}" a jeho data?`)) return;
     const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
@@ -171,6 +158,17 @@ export default function App() {
     localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
     localStorage.removeItem(`krokyData-${user}`);
     setEntries((prev) => prev.filter((e) => e.user !== user));
+  }
+
+  function changeUserPassword(user) {
+    const newPass = editPasswords[user];
+    if (!newPass) return alert("Zadej nové heslo");
+    const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
+    const users = usersRaw ? JSON.parse(usersRaw) : {};
+    users[user] = newPass;
+    localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
+    alert(`Heslo pro uživatele "${user}" bylo změněno!`);
+    setEditPasswords((prev) => ({ ...prev, [user]: "" }));
   }
 
   const chartData = [...entries]
@@ -253,7 +251,7 @@ export default function App() {
                   className="flex-1 p-2 border rounded-md"
                 />
                 <button className="bg-blue-600 text-white px-4 py-2 rounded-xl">
-                  {editingId ? "Uložit" : "Přidat"}
+                  Přidat
                 </button>
                 {entries.length > 0 && (
                   <button
@@ -315,11 +313,12 @@ export default function App() {
         {loggedInUser === "admin" && (
           <div className="bg-white p-4 rounded-2xl shadow">
             <h2 className="text-blue-600 font-semibold mb-3">Admin – všichni uživatelé</h2>
-            <table className="w-full border mb-6">
+            <table className="w-full border mb-6 text-sm">
               <thead>
                 <tr className="bg-blue-100">
                   <th className="border p-2">Uživatel</th>
                   <th className="border p-2">Heslo</th>
+                  <th className="border p-2">Změnit heslo</th>
                   <th className="border p-2">Akce</th>
                 </tr>
               </thead>
@@ -331,6 +330,30 @@ export default function App() {
                     <tr key={u}>
                       <td className="border p-2">{u}</td>
                       <td className="border p-2">{users[u]}</td>
+                      <td className="border p-2">
+                        {u !== "admin" && (
+                          <div className="flex gap-2">
+                            <input
+                              type="password"
+                              placeholder="Nové heslo"
+                              value={editPasswords[u] || ""}
+                              onChange={(e) =>
+                                setEditPasswords((prev) => ({
+                                  ...prev,
+                                  [u]: e.target.value,
+                                }))
+                              }
+                              className="border p-1 rounded-md flex-1"
+                            />
+                            <button
+                              onClick={() => changeUserPassword(u)}
+                              className="bg-green-600 text-white px-3 py-1 rounded-xl"
+                            >
+                              Uložit
+                            </button>
+                          </div>
+                        )}
+                      </td>
                       <td className="border p-2 text-center">
                         {u !== "admin" && (
                           <button
@@ -357,13 +380,6 @@ export default function App() {
                 </tr>
               </thead>
               <tbody>
-                {entries.length === 0 && (
-                  <tr>
-                    <td colSpan="3" className="p-3 text-center text-gray-500">
-                      Zatím žádné záznamy.
-                    </td>
-                  </tr>
-                )}
                 {[...entries]
                   .sort((a, b) => b.date.localeCompare(a.date))
                   .map((e) => (
