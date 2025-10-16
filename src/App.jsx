@@ -11,9 +11,9 @@ import {
 } from "recharts";
 
 // EmailJS konfigurace
-const EMAILJS_SERVICE_ID = "YOUR_SERVICE_ID";
-const EMAILJS_TEMPLATE_ID = "YOUR_TEMPLATE_ID";
-const EMAILJS_PUBLIC_KEY = "YOUR_PUBLIC_KEY";
+const EMAILJS_SERVICE_ID = "service_3j2qrmh";
+const EMAILJS_TEMPLATE_ID = "template_o1ojiar";
+const EMAILJS_PUBLIC_KEY = "dCoz5iUpc4pg0B4nz";
 
 export default function App() {
   const STORAGE_USERS_KEY = "krokyAppUsers";
