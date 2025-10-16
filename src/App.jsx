@@ -454,3 +454,31 @@ export default function App() {
                   )
                     .filter(([user]) => user !== "admin")
                     .map(([user,
+                  {Object.entries(
+                    JSON.parse(localStorage.getItem(STORAGE_USERS_KEY) || "{}")
+                  )
+                    .filter(([user]) => user !== "admin")
+                    .map(([user, data]) => (
+                      <tr key={user} className="border-t">
+                        <td className="p-2">{user}</td>
+                        <td className="p-2">{data.email}</td>
+                        <td className="p-2">{data.verified ? "✔️" : "❌"}</td>
+                        <td className="p-2">
+                          <button
+                            onClick={() => deleteUser(user)}
+                            className="text-sm px-3 py-1 rounded-md bg-red-50 text-red-600 border border-red-100"
+                          >
+                            Smazat
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+      </div>
+    </div>
+  );
+}
