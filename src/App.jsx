@@ -31,7 +31,7 @@ export default function App() {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  // vytvoření admin účtu
+  // Vytvoření admin účtu
   useEffect(() => {
     const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
     const users = usersRaw ? JSON.parse(usersRaw) : {};
@@ -45,7 +45,7 @@ export default function App() {
     }
   }, []);
 
-  // načtení dat po přihlášení
+  // Načtení dat po přihlášení
   useEffect(() => {
     if (!loggedInUser) return;
     const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
@@ -68,13 +68,13 @@ export default function App() {
     }
   }, [loggedInUser]);
 
-  // ukládání záznamů
+  // Ukládání záznamů
   useEffect(() => {
     if (!loggedInUser || loggedInUser === "admin") return;
     localStorage.setItem(`krokyData-${loggedInUser}`, JSON.stringify(entries));
   }, [entries, loggedInUser]);
 
-  // odeslání ověřovacího e-mailu
+  // Odeslání ověřovacího e-mailu
   const sendVerificationEmail = async (email, username, code) => {
     try {
       await emailjs.send(
@@ -93,7 +93,7 @@ export default function App() {
     }
   };
 
-  // registrace
+  // Registrace
   const handleRegister = async (e) => {
     e.preventDefault();
     if (!usernameInput || !passwordInput || !emailInput)
@@ -116,7 +116,7 @@ export default function App() {
     setIsVerifying(true);
   };
 
-  // ověření kódu
+  // Ověření kódu
   const handleVerification = (e) => {
     e.preventDefault();
     const users = JSON.parse(localStorage.getItem(STORAGE_USERS_KEY) || "{}");
@@ -139,7 +139,7 @@ export default function App() {
     }
   };
 
-  // login
+  // Login
   const handleLogin = (e) => {
     e.preventDefault();
     const users = JSON.parse(localStorage.getItem(STORAGE_USERS_KEY) || "{}");
@@ -304,7 +304,7 @@ export default function App() {
           </button>
         </header>
 
-        {/* sekce přidání záznamů */}
+        {/* Přidání záznamů */}
         {loggedInUser !== "admin" && (
           <section className="bg-white rounded-2xl shadow p-4 mb-6">
             <form onSubmit={addOrUpdateEntry} className="space-y-3">
@@ -352,7 +352,7 @@ export default function App() {
           </section>
         )}
 
-        {/* graf */}
+        {/* Graf */}
         <section className="bg-white rounded-2xl shadow p-4 mb-6">
           <h2 className="font-semibold text-blue-700 mb-2">Graf kroků</h2>
           <div style={{ height: 260 }} className="w-full">
@@ -374,7 +374,7 @@ export default function App() {
           </div>
         </section>
 
-        {/* tabulka */}
+        {/* Tabulka záznamů */}
         <section className="bg-white rounded-2xl shadow p-4 mb-6">
           <h3 className="text-lg font-medium text-blue-700 mb-3">Záznamy</h3>
           <div className="overflow-x-auto">
@@ -432,7 +432,7 @@ export default function App() {
           </div>
         </section>
 
-        {/* sekce admin */}
+        {/* Sekce admin */}
         {loggedInUser === "admin" && (
           <section className="bg-white rounded-2xl shadow p-4 mt-6">
             <h3 className="text-lg font-medium text-blue-700 mb-3">
@@ -449,11 +449,6 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(
-                    JSON.parse(localStorage.getItem(STORAGE_USERS_KEY) || "{}")
-                  )
-                    .filter(([user]) => user !== "admin")
-                    .map(([user,
                   {Object.entries(
                     JSON.parse(localStorage.getItem(STORAGE_USERS_KEY) || "{}")
                   )
