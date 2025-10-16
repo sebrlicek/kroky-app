@@ -1,211 +1,111 @@
 import React, { useState, useEffect } from "react";
+import emailjs from "emailjs-com";
 
 export default function App() {
-  const STORAGE_USERS_KEY = "krokyAppUsers";
+  const [users, setUsers] = useState({});
   const [loggedInUser, setLoggedInUser] = useState(null);
   const [usernameInput, setUsernameInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
+  const [emailInput, setEmailInput] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
-  const [entries, setEntries] = useState([]);
-  const [stepsInput, setStepsInput] = useState("");
-  const [editingId, setEditingId] = useState(null);
-  const [showSettings, setShowSettings] = useState(false);
-  const [mathProblem, setMathProblem] = useState({ a: 0, b: 0 });
-  const [mathAnswer, setMathAnswer] = useState("");
-  const [mathVerified, setMathVerified] = useState(false);
-  const [newPassword, setNewPassword] = useState("");
-  const [editPasswords, setEditPasswords] = useState({});
+  const [verificationLinks, setVerificationLinks] = useState({});
 
-  const today = new Date().toISOString().slice(0, 10);
+  const STORAGE_USERS_KEY = "krokyAppUsers";
+  const STORAGE_VERIFIED_KEY = "verifiedUsers";
 
-  // vytvoření admin účtu
   useEffect(() => {
     const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
-    const users = usersRaw ? JSON.parse(usersRaw) : {};
-    if (!users["admin"]) {
-      users["admin"] = "admin";
-      localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
+    setUsers(usersRaw ? JSON.parse(usersRaw) : {});
+
+    // vytvoření admin účtu
+    if (!usersRaw) {
+      const admin = { admin: { password: "admin", verified: true, email: "admin@local" } };
+      localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(admin));
+      setUsers(admin);
     }
   }, []);
 
-  // načtení záznamů po přihlášení
-  useEffect(() => {
-    if (!loggedInUser) return;
-    const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
-    const users = usersRaw ? JSON.parse(usersRaw) : {};
-
-    if (loggedInUser === "admin") {
-      let allEntries = [];
-      Object.keys(users).forEach((u) => {
-        const raw = localStorage.getItem(`krokyData-${u}`);
-        if (raw) {
-          const data = JSON.parse(raw);
-          data.forEach((e) => (e.user = u));
-          allEntries = allEntries.concat(data);
-        }
-      });
-      setEntries(allEntries);
-    } else {
-      const raw = localStorage.getItem(`krokyData-${loggedInUser}`);
-      if (raw) setEntries(JSON.parse(raw));
-      else setEntries([]);
-    }
-  }, [loggedInUser]);
-
-  // ukládání dat
-  useEffect(() => {
-    if (!loggedInUser || loggedInUser === "admin") return;
-    localStorage.setItem(`krokyData-${loggedInUser}`, JSON.stringify(entries));
-  }, [entries, loggedInUser]);
-
-  // registrace
-  function handleRegister(e) {
+  async function handleRegister(e) {
     e.preventDefault();
-    if (!usernameInput || !passwordInput) return alert("Vyplň jméno i heslo");
+    if (!usernameInput || !passwordInput || !emailInput)
+      return alert("Vyplň všechna pole!");
 
-    const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
-    const users = usersRaw ? JSON.parse(usersRaw) : {};
+    if (users[usernameInput]) return alert("Uživatel již existuje!");
 
-    if (users[usernameInput]) return alert("Uživatel už existuje");
+    const newUsers = {
+      ...users,
+      [usernameInput]: { password: passwordInput, verified: false, email: emailInput },
+    };
+    localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(newUsers));
+    setUsers(newUsers);
 
-    users[usernameInput] = passwordInput;
-    localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
+    const verifyLink = `${window.location.origin}?verify=${usernameInput}`;
+    setVerificationLinks((prev) => ({ ...prev, [usernameInput]: verifyLink }));
 
-    alert("Registrace úspěšná! Přihlaš se.");
-    setIsRegistering(false);
+    try {
+      await emailjs.send(
+        "service_3j2qrmh", // <-- doplň svoje
+        "template_o1ojiar", // <-- doplň svoje
+        {
+          user_name: usernameInput,
+          verify_link: verifyLink,
+          to_email: emailInput,
+        },
+        "dCoz5iUpc4pg0B4nz" // <-- doplň svoje
+      );
+      alert("Ověřovací e-mail byl odeslán! Zkontroluj svou schránku.");
+    } catch (error) {
+      console.error("Chyba při odesílání e-mailu:", error);
+      alert("Nepodařilo se odeslat e-mail. Zkontroluj konfiguraci EmailJS.");
+    }
+
     setUsernameInput("");
     setPasswordInput("");
+    setEmailInput("");
+    setIsRegistering(false);
   }
 
-  // přihlášení
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const verifyUser = params.get("verify");
+    if (verifyUser) {
+      const stored = JSON.parse(localStorage.getItem(STORAGE_USERS_KEY) || "{}");
+      if (stored[verifyUser]) {
+        stored[verifyUser].verified = true;
+        localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(stored));
+        setUsers(stored);
+        alert(`Uživatel ${verifyUser} byl ověřen! Můžeš se přihlásit.`);
+      }
+    }
+  }, []);
+
   function handleLogin(e) {
     e.preventDefault();
-    const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
-    const users = usersRaw ? JSON.parse(usersRaw) : {};
-    if (!users[usernameInput] || users[usernameInput] !== passwordInput)
+    if (!users[usernameInput] || users[usernameInput].password !== passwordInput)
       return alert("Špatné jméno nebo heslo!");
+
+    if (!users[usernameInput].verified)
+      return alert("Účet není ověřený. Zkontroluj e-mail!");
+
     setLoggedInUser(usernameInput);
-    setUsernameInput("");
-    setPasswordInput("");
   }
 
   function handleLogout() {
     setLoggedInUser(null);
-    setEntries([]);
-    setShowSettings(false);
-    setMathVerified(false);
-    setMathAnswer("");
-    setNewPassword("");
   }
 
-  // přidání kroků
-  function addOrUpdateEntry(e) {
-    e.preventDefault();
-    const steps = Number(stepsInput) || 0;
-    if (steps <= 0) return alert("Zadej kladný počet kroků");
-
-    const date = today;
-    if (editingId) {
-      setEntries((prev) =>
-        prev.map((it) => (it.id === editingId ? { ...it, steps } : it))
-      );
-      setEditingId(null);
-    } else {
-      setEntries((prev) => {
-        const filtered = prev.filter((p) => p.date !== date);
-        const newEntry = {
-          id: Date.now().toString(),
-          date,
-          steps,
-          user: loggedInUser,
-        };
-        return [...filtered, newEntry].sort((a, b) =>
-          a.date.localeCompare(b.date)
-        );
-      });
-    }
-    setStepsInput("");
-  }
-
-  function startEdit(entry) {
-    setStepsInput(entry.steps);
-    setEditingId(entry.id);
-  }
-
-  function removeEntry(id) {
-    if (confirm("Smazat záznam?"))
-      setEntries((prev) => prev.filter((p) => p.id !== id));
-  }
-
-  function clearAll() {
-    if (confirm("Smazat všechny záznamy?")) {
-      setEntries([]);
-      localStorage.removeItem(`krokyData-${loggedInUser}`);
-    }
-  }
-
-  // nastavení účtu
-  function openSettings() {
-    setShowSettings(!showSettings);
-    setMathVerified(false);
-    setMathAnswer("");
-    const a = Math.floor(Math.random() * 10) + 1;
-    const b = Math.floor(Math.random() * 10) + 1;
-    setMathProblem({ a, b });
-  }
-
-  function verifyMath(e) {
-    e.preventDefault();
-    if (Number(mathAnswer) === mathProblem.a * mathProblem.b) setMathVerified(true);
-    else alert("Špatně! Zkus znovu.");
-  }
-
-  function changePassword(e) {
-    e.preventDefault();
-    if (!newPassword) return alert("Zadej nové heslo");
-    const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
-    const users = usersRaw ? JSON.parse(usersRaw) : {};
-    users[loggedInUser] = newPassword;
-    localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
-    alert("Heslo změněno!");
-    setShowSettings(false);
-    setMathVerified(false);
-    setNewPassword("");
-  }
-
-  // admin akce
-  function deleteUser(user) {
-    if (!confirm(`Smazat uživatele "${user}" a jeho data?`)) return;
-    const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
-    const users = usersRaw ? JSON.parse(usersRaw) : {};
-    delete users[user];
-    localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
-    localStorage.removeItem(`krokyData-${user}`);
-    setEntries((prev) => prev.filter((e) => e.user !== user));
-  }
-
-  function changeUserPassword(user) {
-    const newPass = editPasswords[user];
-    if (!newPass) return alert("Zadej nové heslo");
-    const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
-    const users = usersRaw ? JSON.parse(usersRaw) : {};
-    users[user] = newPass;
-    localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
-    alert(`Heslo pro uživatele "${user}" změněno!`);
-    setEditPasswords((prev) => ({ ...prev, [user]: "" }));
-  }
-
-  // přihlašovací obrazovka
+  // UI
   if (!loggedInUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-blue-50">
         <form
+          className="bg-white p-8 rounded-2xl shadow space-y-4 w-96 text-center"
           onSubmit={isRegistering ? handleRegister : handleLogin}
-          className="bg-white p-8 rounded-2xl shadow space-y-4 w-80 text-center"
         >
-          <h1 className="text-2xl font-bold text-blue-700">
+          <h1 className="text-2xl font-bold text-blue-700 mb-2">
             {isRegistering ? "Registrace" : "Přihlášení"}
           </h1>
+
           <input
             type="text"
             placeholder="Uživatelské jméno"
@@ -220,13 +120,24 @@ export default function App() {
             onChange={(e) => setPasswordInput(e.target.value)}
             className="w-full p-2 border rounded-md"
           />
+          {isRegistering && (
+            <input
+              type="email"
+              placeholder="E-mail pro ověření"
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              className="w-full p-2 border rounded-md"
+            />
+          )}
+
           <button
             type="submit"
-            className="w-full px-4 py-2 rounded-xl bg-blue-600 text-white"
+            className="w-full px-4 py-2 rounded-xl bg-blue-600 text-white font-medium"
           >
             {isRegistering ? "Registrovat" : "Přihlásit se"}
           </button>
-          <p className="text-sm text-blue-700">
+
+          <p className="text-sm text-blue-700 mt-2">
             {isRegistering ? "Máš účet?" : "Nemáš účet?"}{" "}
             <button
               type="button"
@@ -241,237 +152,42 @@ export default function App() {
     );
   }
 
-  // hlavní aplikace
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-6">
-      <div className="max-w-4xl mx-auto">
-        <header className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-blue-700">
-            {loggedInUser === "admin" ? "Admin panel" : "Moje kroky"}
-          </h1>
-          <button
-            onClick={handleLogout}
-            className="px-3 py-1 border border-red-400 text-red-600 rounded-xl"
-          >
-            Odhlásit ({loggedInUser})
-          </button>
-        </header>
+    <div className="min-h-screen bg-blue-50 flex flex-col items-center justify-center text-center">
+      <div className="bg-white p-8 rounded-2xl shadow-lg w-96">
+        <h1 className="text-2xl font-bold text-blue-700 mb-4">
+          Vítej, {loggedInUser}!
+        </h1>
 
-        {/* uživatel */}
-        {loggedInUser !== "admin" && (
+        {loggedInUser === "admin" ? (
           <>
-            <form
-              onSubmit={addOrUpdateEntry}
-              className="bg-white p-4 rounded-2xl shadow mb-6"
-            >
-              <h2 className="text-blue-600 font-semibold mb-2">Dnešní záznam</h2>
-              <div className="flex gap-3">
-                <input
-                  type="number"
-                  value={stepsInput}
-                  onChange={(e) => setStepsInput(e.target.value)}
-                  placeholder="Počet kroků"
-                  className="flex-1 p-2 border rounded-md"
-                />
-                <button className="bg-blue-600 text-white px-4 py-2 rounded-xl">
-                  {editingId ? "Uložit" : "Přidat"}
-                </button>
-              </div>
-            </form>
-
-            <div className="bg-white p-4 rounded-2xl shadow mb-6">
-              <h3 className="text-blue-600 font-semibold mb-2">Moje záznamy</h3>
-              <table className="w-full text-sm border">
-                <thead>
-                  <tr className="bg-blue-100">
-                    <th className="border p-2">Datum</th>
-                    <th className="border p-2">Kroky</th>
-                    <th className="border p-2">Akce</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {entries.length === 0 ? (
-                    <tr>
-                      <td colSpan="3" className="p-3 text-center text-gray-500">
-                        Zatím žádné záznamy
-                      </td>
-                    </tr>
-                  ) : (
-                    entries
-                      .sort((a, b) => b.date.localeCompare(a.date))
-                      .map((e) => (
-                        <tr key={e.id}>
-                          <td className="border p-2">{e.date}</td>
-                          <td className="border p-2">{e.steps}</td>
-                          <td className="border p-2">
-                            <button
-                              onClick={() => startEdit(e)}
-                              className="text-blue-600 mr-2"
-                            >
-                              Upravit
-                            </button>
-                            <button
-                              onClick={() => removeEntry(e.id)}
-                              className="text-red-600"
-                            >
-                              Smazat
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                  )}
-                </tbody>
-              </table>
-              {entries.length > 0 && (
-                <button
-                  onClick={clearAll}
-                  className="mt-3 bg-red-500 text-white px-4 py-2 rounded-xl"
+            <h2 className="font-semibold mb-2 text-blue-600">Všichni uživatelé</h2>
+            <ul className="text-left space-y-2 max-h-60 overflow-y-auto border p-2 rounded">
+              {Object.entries(users).map(([user, data]) => (
+                <li
+                  key={user}
+                  className="border-b py-1 flex justify-between items-center"
                 >
-                  Smazat všechny záznamy
-                </button>
-              )}
-            </div>
-
-            {/* nastavení účtu */}
-            <div>
-              <button
-                onClick={openSettings}
-                className="bg-yellow-500 text-white px-4 py-2 rounded-xl"
-              >
-                Nastavení účtu
-              </button>
-
-              {showSettings && (
-                <div className="mt-3 bg-white p-4 rounded-2xl shadow">
-                  {!mathVerified ? (
-                    <form onSubmit={verifyMath}>
-                      <p>
-                        Kolik je {mathProblem.a} × {mathProblem.b} ?
-                      </p>
-                      <input
-                        type="number"
-                        value={mathAnswer}
-                        onChange={(e) => setMathAnswer(e.target.value)}
-                        className="p-2 border rounded-md w-full"
-                      />
-                      <button className="bg-blue-600 text-white px-4 py-2 mt-2 rounded-xl">
-                        Ověřit
-                      </button>
-                    </form>
-                  ) : (
-                    <form onSubmit={changePassword}>
-                      <p>Zadej nové heslo:</p>
-                      <input
-                        type="password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        className="p-2 border rounded-md w-full"
-                      />
-                      <button className="bg-green-600 text-white px-4 py-2 mt-2 rounded-xl">
-                        Změnit heslo
-                      </button>
-                    </form>
-                  )}
-                </div>
-              )}
-            </div>
+                  <span>
+                    <b>{user}</b> ({data.verified ? "✔️ ověřen" : "❌ neověřen"})
+                  </span>
+                  <small>{data.email}</small>
+                </li>
+              ))}
+            </ul>
           </>
+        ) : (
+          <p className="text-gray-600">
+            Úspěšně přihlášen. Tvoje kroky zatím nejsou sledovány. 🙂
+          </p>
         )}
 
-        {/* admin panel */}
-        {loggedInUser === "admin" && (
-          <div className="bg-white p-4 rounded-2xl shadow">
-            <h2 className="text-blue-600 font-semibold mb-3">Admin – uživatelé</h2>
-            <table className="w-full border mb-6 text-sm">
-              <thead>
-                <tr className="bg-blue-100">
-                  <th className="border p-2">Uživatel</th>
-                  <th className="border p-2">Heslo</th>
-                  <th className="border p-2">Změna hesla</th>
-                  <th className="border p-2">Akce</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(() => {
-                  const usersRaw = localStorage.getItem(STORAGE_USERS_KEY);
-                  const users = usersRaw ? JSON.parse(usersRaw) : {};
-                  return Object.keys(users).map((u) => (
-                    <tr key={u}>
-                      <td className="border p-2">{u}</td>
-                      <td className="border p-2">{users[u]}</td>
-                      <td className="border p-2">
-                        {u !== "admin" && (
-                          <div className="flex gap-2">
-                            <input
-                              type="password"
-                              placeholder="Nové heslo"
-                              value={editPasswords[u] || ""}
-                              onChange={(e) =>
-                                setEditPasswords((prev) => ({
-                                  ...prev,
-                                  [u]: e.target.value,
-                                }))
-                              }
-                              className="border p-1 rounded-md flex-1"
-                            />
-                            <button
-                              onClick={() => changeUserPassword(u)}
-                              className="bg-green-600 text-white px-3 py-1 rounded-xl"
-                            >
-                              Uložit
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                      <td className="border p-2 text-center">
-                        {u !== "admin" && (
-                          <button
-                            onClick={() => deleteUser(u)}
-                            className="bg-red-500 text-white px-3 py-1 rounded-xl"
-                          >
-                            Smazat
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ));
-                })()}
-              </tbody>
-            </table>
-
-            <h3 className="text-blue-600 font-semibold mb-2">
-              Všechny záznamy kroků
-            </h3>
-            <table className="w-full border text-sm">
-              <thead>
-                <tr className="bg-blue-100">
-                  <th className="border p-2">Uživatel</th>
-                  <th className="border p-2">Datum</th>
-                  <th className="border p-2">Kroky</th>
-                </tr>
-              </thead>
-              <tbody>
-                {entries.length === 0 ? (
-                  <tr>
-                    <td colSpan="3" className="p-3 text-center text-gray-500">
-                      Žádné záznamy
-                    </td>
-                  </tr>
-                ) : (
-                  entries
-                    .sort((a, b) => b.date.localeCompare(a.date))
-                    .map((e) => (
-                      <tr key={e.id}>
-                        <td className="border p-2">{e.user}</td>
-                        <td className="border p-2">{e.date}</td>
-                        <td className="border p-2">{e.steps}</td>
-                      </tr>
-                    ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <button
+          onClick={handleLogout}
+          className="mt-4 px-4 py-2 rounded-xl border border-red-400 text-red-600"
+        >
+          Odhlásit
+        </button>
       </div>
     </div>
   );
