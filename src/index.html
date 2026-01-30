@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <title>Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: "Segoe UI", system-ui, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    }
+
+    .login-card {
+      width: 360px;
+      padding: 2.5rem;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+      color: #eaf6ff;
+    }
+
+    .login-card h1 {
+      margin: 0 0 1.5rem 0;
+      text-align: center;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .field {
+      margin-bottom: 1.2rem;
+    }
+
+    .field label {
+      display: block;
+      font-size: 0.85rem;
+      margin-bottom: 0.4rem;
+      opacity: 0.85;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 0.75rem 0.9rem;
+      border-radius: 12px;
+      border: none;
+      outline: none;
+      background: rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      font-size: 0.95rem;
+    }
+
+    .field input::placeholder {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .field input:focus {
+      background: rgba(255, 255, 255, 0.28);
+    }
+
+    button {
+      width: 100%;
+      margin-top: 1rem;
+      padding: 0.8rem;
+      border-radius: 14px;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #0b3c5d;
+      background: linear-gradient(135deg, #6dd5fa, #c2e9fb);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .footer {
+      margin-top: 1.4rem;
+      text-align: center;
+      font-size: 0.8rem;
+      opacity: 0.75;
+    }
+
+    .footer a {
+      color: #bfe9ff;
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <h1>Přihlášení</h1>
+
+    <div class="field">
+      <label for="email">E-mail</label>
+      <input id="email" type="email" placeholder="adolf.hein@gmail.com" />
+    </div>
+
+    <div class="field">
+      <label for="password">Heslo</label>
+      <input id="password" type="password" placeholder="123456789" />
+    </div>
+
+    <button>Přihlásit se</button>
+
+    <div class="footer">
+      Nemáš účet? <a href="#">Registrace</a>
+    </div>
+  </div>
+</body>
+</html>
